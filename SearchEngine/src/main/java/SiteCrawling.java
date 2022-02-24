@@ -4,6 +4,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.RecursiveAction;
@@ -28,7 +29,6 @@ public class SiteCrawling  extends RecursiveAction
                     .referrer("http://www.google.com")
                     .maxBodySize(0).get();
 
-            String encodedString = Base64.getEncoder().encodeToString(document.toString().getBytes());
 
             Elements element = document.select("a");
 
@@ -44,18 +44,17 @@ public class SiteCrawling  extends RecursiveAction
                     String href = url.charAt(url.length() - 1) == '/'  ?
                             absHref.replaceAll(url, "/") : absHref.replaceAll(url, "");
 
-                    Statement statement = connection.createStatement();
+
 
                     org.jsoup.Connection.Response statusCode = Jsoup.connect(absHref).execute();
 
-                    Link link = new Link();
-                    link.setPath(href);
-                    link.setCode(statusCode.statusCode());
-                    link.setContent(document.toString());
-
-                    statement.addBatch("INSERT IGNORE INTO page(path, code,content) " +
-                            "VALUES('" + link.getPath() + "', '" + link.getCode() + "','" + absHref + "')");
-                    statement.executeBatch();
+                    Link link = new Link(href,statusCode.statusCode(),document.toString()) ;
+                    PreparedStatement preparedStatement = connection.prepareStatement("INSERT IGNORE INTO page(path, code,content) " +
+                            "VALUES(?,?,?)");
+                    preparedStatement.setString(1,link.getPath());
+                    preparedStatement.setInt(2,link.getCode());
+                    preparedStatement.setString(3,document.toString());
+                    preparedStatement.executeUpdate();
                 }
 
             }

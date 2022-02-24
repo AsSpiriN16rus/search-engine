@@ -11,7 +11,7 @@ public class Main
 
     public static void main(String[] args) {
 
-        String url = "https://lenta.ru";
+        String url = "http://www.playback.ru/";
         ForkJoinPool forkJoinPool = new ForkJoinPool();
         forkJoinPool.invoke(new SiteCrawling(url));
     }

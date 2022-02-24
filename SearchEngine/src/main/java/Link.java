@@ -7,9 +7,16 @@ import java.io.Serializable;
 @Table(name = "page")
 public class Link implements Serializable
 {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
+
+    public Link(String path, int code, String content) {
+        this.path = path;
+        this.code = code;
+        this.content = content;
+    }
 
     @Column(nullable = false)
     private String path;
