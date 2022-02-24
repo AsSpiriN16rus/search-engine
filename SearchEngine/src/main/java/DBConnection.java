@@ -1,3 +1,5 @@
+import org.springframework.beans.factory.annotation.Value;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -11,11 +13,12 @@ public class DBConnection
 
     public static Connection getConnection()
     {
+
         if (connection == null){
             try {
                 connection = DriverManager.getConnection(
                         "jdbc:mysql://localhost:3306/" + dbName +
-                                "?user=" + dbUser + "&password=" + dbPass);
+                                "?user=" + dbUser + "&password=" + dbPass + "&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true");
                 connection.createStatement().execute("DROP TABLE IF EXISTS page");
                 connection.createStatement().execute("CREATE TABLE page(" +
                         "id INT NOT NULL AUTO_INCREMENT, " +

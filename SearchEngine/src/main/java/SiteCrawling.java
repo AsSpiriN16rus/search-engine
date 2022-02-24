@@ -5,18 +5,15 @@ import org.jsoup.select.Elements;
 
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.RecursiveAction;
 
 public class SiteCrawling  extends RecursiveAction
 {
     private final String url;
-    private static Set<String> siteUrlList = new HashSet<>();
+    private static Set<Link> siteUrlList = new HashSet<>();
+    private static Set<String> siteUrlListAfter = new HashSet<>();
     private static Connection connection = DBConnection.getConnection();
-
     public SiteCrawling(String url) {
         this.url = url;
     }
@@ -30,26 +27,34 @@ public class SiteCrawling  extends RecursiveAction
                     .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
                     .referrer("http://www.google.com")
                     .maxBodySize(0).get();
-            Elements elements = document.select("head");
-            String htmlDocument = elements.toString();
 
-            org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
+            String encodedString = Base64.getEncoder().encodeToString(document.toString().getBytes());
 
             Elements element = document.select("a");
 
             for (Element em : element){
                 String absHref = em.attr("abs:href");
                 int indexJava = absHref.indexOf(url);
-                if (indexJava != -1 && !siteUrlList.contains(absHref)){
-                    System.out.println(absHref);
-                    siteUrlList.add(absHref);
+                if (indexJava != -1 && !siteUrlListAfter.contains(absHref)){
                     SiteCrawling task = new SiteCrawling(absHref);
                     task.fork();
                     tasks.add(task);
-                    String href = absHref.replaceAll(url, "");
+                    siteUrlListAfter.add(absHref);
+
+                    String href = url.charAt(url.length() - 1) == '/'  ?
+                            absHref.replaceAll(url, "/") : absHref.replaceAll(url, "");
+
                     Statement statement = connection.createStatement();
+
+                    org.jsoup.Connection.Response statusCode = Jsoup.connect(absHref).execute();
+
+                    Link link = new Link();
+                    link.setPath(href);
+                    link.setCode(statusCode.statusCode());
+                    link.setContent(document.toString());
+
                     statement.addBatch("INSERT IGNORE INTO page(path, code,content) " +
-                            "VALUES('" + href + "', '" + statusCode.statusCode() + "','" + htmlDocument + "')");
+                            "VALUES('" + link.getPath() + "', '" + link.getCode() + "','" + absHref + "')");
                     statement.executeBatch();
                 }
 
