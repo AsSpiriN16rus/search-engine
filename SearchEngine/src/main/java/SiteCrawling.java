@@ -43,7 +43,7 @@ public class SiteCrawling  extends RecursiveAction
 
                     String href = url.charAt(url.length() - 1) == '/'  ?
                             absHref.replaceAll(url, "/") : absHref.replaceAll(url, "");
-
+                    System.out.println(absHref);
 
 
                     org.jsoup.Connection.Response statusCode = Jsoup.connect(absHref).execute();
