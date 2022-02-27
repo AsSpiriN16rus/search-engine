@@ -20,7 +20,7 @@ public class DBConnection
                 connection.createStatement().execute("DROP TABLE IF EXISTS page");
                 connection.createStatement().execute("DROP TABLE IF EXISTS field");
                 connection.createStatement().execute("DROP TABLE IF EXISTS lemma");
-//                connection.createStatement().execute("DROP TABLE IF EXISTS index");
+                connection.createStatement().execute("DROP TABLE IF EXISTS index");
 
                 connection.createStatement().execute("CREATE TABLE page(" +
                         "id INT NOT NULL AUTO_INCREMENT, " +
