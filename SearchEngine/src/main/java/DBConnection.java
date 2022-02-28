@@ -1,5 +1,3 @@
-import org.springframework.beans.factory.annotation.Value;
-
 import java.sql.*;
 
 public class DBConnection
@@ -20,7 +18,7 @@ public class DBConnection
                 connection.createStatement().execute("DROP TABLE IF EXISTS page");
                 connection.createStatement().execute("DROP TABLE IF EXISTS field");
                 connection.createStatement().execute("DROP TABLE IF EXISTS lemma");
-                connection.createStatement().execute("DROP TABLE IF EXISTS index");
+                connection.createStatement().execute("DROP TABLE IF EXISTS aindex");
 
                 connection.createStatement().execute("CREATE TABLE page(" +
                         "id INT NOT NULL AUTO_INCREMENT, " +
@@ -40,11 +38,11 @@ public class DBConnection
                         "lemma VARCHAR(255) NOT NULL, " +
                         "frequency INT NOT NULL, " +
                         "PRIMARY KEY(id))");
-                connection.createStatement().execute("CREATE TABLE index(" +
+                connection.createStatement().execute("CREATE TABLE aindex(" +
                         "id INT NOT NULL AUTO_INCREMENT, " +
                         "page_id INT NOT NULL, " +
                         "lemma_id INT NOT NULL, " +
-                        "rank FLOAT NOT NULL, " +
+                        "arank FLOAT NOT NULL, " +
                         "PRIMARY KEY(id) )");
 
                 defaultField(connection);

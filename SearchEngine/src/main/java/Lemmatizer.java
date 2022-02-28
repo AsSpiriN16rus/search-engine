@@ -1,12 +1,9 @@
-import com.fasterxml.jackson.databind.util.TypeKey;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 
 public class Lemmatizer
 {

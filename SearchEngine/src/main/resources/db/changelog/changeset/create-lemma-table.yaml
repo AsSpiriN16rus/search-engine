@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-lemma
+      author: Anton
+      changes:
+        - createTable:
+            tableName: lemma
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: lemma
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: frequency
+                  type: bigint
+                  constraints:
+                    nullable: true

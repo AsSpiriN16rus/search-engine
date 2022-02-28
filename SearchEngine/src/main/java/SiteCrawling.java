@@ -1,3 +1,4 @@
+import model.Link;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -5,7 +6,6 @@ import org.jsoup.select.Elements;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.RecursiveAction;
 

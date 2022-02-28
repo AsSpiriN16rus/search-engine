@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-field
+      author: Anton
+      changes:
+        - createTable:
+            tableName: field
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: page_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+              - column:
+                  name: lemma_id
+                  type: bigint
+                  constraints:
+                    nullable: true
+              - column:
+                  name: rank
+                  type: FLOAT
+                  constraints:
+                    nullable: true
