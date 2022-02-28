@@ -1,0 +1,54 @@
+package model;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "index")
+public class Index
+{
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private int id;
+
+    @Column(name = "page_id")
+    private int pageId;
+
+    @Column(name = "lemma_id")
+    private  int lemmaId;
+
+    private float rank;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getPageId() {
+        return pageId;
+    }
+
+    public void setPageId(int pageId) {
+        this.pageId = pageId;
+    }
+
+    public int getLemmaId() {
+        return lemmaId;
+    }
+
+    public void setLemmaId(int lemmaId) {
+        this.lemmaId = lemmaId;
+    }
+
+    public float getRank() {
+        return rank;
+    }
+
+    public void setRank(float rank) {
+        this.rank = rank;
+    }
+
+
+}
