@@ -1,3 +1,5 @@
+package main;
+
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 
@@ -9,6 +11,7 @@ public class Lemmatizer
 {
     private static HashMap<String,Integer> luceneMap = new HashMap<>();
     public static void LemmatizerText(String textLem){
+
         try {
             LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
             String[] textSplit = textLem.replaceAll("[^а-яА-ЯёЁ ]", "").toLowerCase().split("\\s+");

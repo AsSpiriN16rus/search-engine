@@ -1,30 +1,27 @@
-package model;
+package main.model;
 
 import javax.persistence.*;
 import java.io.Serializable;
 
 @Entity
 @Table(name = "page")
-public class Link implements Serializable
+public class Page implements Serializable
 {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
 
-    public Link(String path, int code, String content) {
+    public Page(String path, int code, String content) {
         this.path = path;
         this.code = code;
         this.content = content;
     }
 
-    @Column(nullable = false)
     private String path;
 
-    @Column(nullable = false)
     private int code;
 
-    @Column(nullable = false)
     private String content;
 
     public int getId() {

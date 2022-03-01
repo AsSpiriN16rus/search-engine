@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: create-field
+      id: create-index
       author: Anton
       changes:
         - createTable:
-            tableName: field
+            tableName: index
             columns:
               - column:
                   name: id

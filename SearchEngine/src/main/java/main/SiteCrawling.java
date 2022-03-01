@@ -1,4 +1,6 @@
-import model.Link;
+package main;
+
+import main.model.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -12,12 +14,13 @@ import java.util.concurrent.RecursiveAction;
 public class SiteCrawling  extends RecursiveAction
 {
     private final String url;
-    private static Set<Link> siteUrlList = new HashSet<>();
     private static Set<String> siteUrlListAfter = new HashSet<>();
-    private static Connection connection = DBConnection.getConnection();
+    private static Connection connection = DBConnection.getConnection() ;
     public SiteCrawling(String url) {
         this.url = url;
     }
+
+
 
     @Override
     protected void compute() {
@@ -43,17 +46,15 @@ public class SiteCrawling  extends RecursiveAction
 
                     String href = url.charAt(url.length() - 1) == '/'  ?
                             absHref.replaceAll(url, "/") : absHref.replaceAll(url, "");
-                    System.out.println(absHref);
-
 
                     org.jsoup.Connection.Response statusCode = Jsoup.connect(absHref).execute();
+                    Page link = new Page(href,statusCode.statusCode(),document.toString()) ;
 
-                    Link link = new Link(href,statusCode.statusCode(),document.toString()) ;
                     PreparedStatement preparedStatement = connection.prepareStatement("INSERT IGNORE INTO page(path, code,content) " +
                             "VALUES(?,?,?)");
                     preparedStatement.setString(1,link.getPath());
                     preparedStatement.setInt(2,link.getCode());
-                    preparedStatement.setString(3,document.toString());
+                    preparedStatement.setString(3, link.getContent());
                     preparedStatement.executeUpdate();
                 }
 
@@ -69,6 +70,5 @@ public class SiteCrawling  extends RecursiveAction
             ex.printStackTrace();
         }
     }
-
 
 }
