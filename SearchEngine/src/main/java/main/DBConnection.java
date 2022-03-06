@@ -12,16 +12,16 @@ public class DBConnection
     public static Connection getConnection()
     {
 
-        if (connection == null){
-            try {
-                connection = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/" + dbName +
-                                "?user=" + dbUser + "&password=" + dbPass + "&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true");
+//        if (connection == null){
+//            try {
+//                connection = DriverManager.getConnection(
+//                        "jdbc:mysql://localhost:3306/" + dbName +
+//                                "?user=" + dbUser + "&password=" + dbPass + "&createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true");
 //                connection.createStatement().execute("DROP TABLE IF EXISTS page");
 //                connection.createStatement().execute("DROP TABLE IF EXISTS field");
 //                connection.createStatement().execute("DROP TABLE IF EXISTS lemma");
-//                connection.createStatement().execute("DROP TABLE IF EXISTS index");
-
+//                connection.createStatement().execute("DROP TABLE IF EXISTS aindex");
+//
 //                connection.createStatement().execute("CREATE TABLE page(" +
 //                        "id INT NOT NULL AUTO_INCREMENT, " +
 //                        "path TEXT NOT NULL, " +
@@ -46,12 +46,12 @@ public class DBConnection
 //                        "lemma_id INT NOT NULL, " +
 //                        "arank FLOAT NOT NULL, " +
 //                        "PRIMARY KEY(id) )");
-
-                defaultField(connection);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+//
+//                defaultField(connection);
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//        }
         return connection;
     }
 

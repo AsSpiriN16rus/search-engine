@@ -17,11 +17,11 @@ public class Page implements Serializable
         this.code = code;
         this.content = content;
     }
-
+    @Column(nullable = false)
     private String path;
-
+    @Column(nullable = false)
     private int code;
-
+    @Column(nullable = false)
     private String content;
 
     public int getId() {

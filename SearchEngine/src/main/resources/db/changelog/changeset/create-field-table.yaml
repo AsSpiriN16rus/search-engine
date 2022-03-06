@@ -28,3 +28,32 @@ databaseChangeLog:
                   type: FLOAT
                   constraints:
                     nullable: true
+  - changeSet:
+      id: 2
+      author: Anton
+      comment: "Create admin field"
+      changes:
+        - insert:
+            tableName: field
+            columns:
+              - column:
+                  name: name
+                  value: "title"
+              - column:
+                  name: selector
+                  value: "title"
+              - column:
+                  name: weight
+                  value: "1.0"
+        - insert:
+            tableName: field
+            columns:
+              - column:
+                  name: name
+                  value: "body"
+              - column:
+                  name: selector
+                  value: "body"
+              - column:
+                  name: weight
+                  value: "0.8"

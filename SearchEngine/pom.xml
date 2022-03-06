@@ -49,6 +49,12 @@
             <artifactId>liquibase-core</artifactId>
             <version>4.8.0</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework/spring-jdbc -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>5.3.16</version>
+        </dependency>
     </dependencies>
 
 </project>
