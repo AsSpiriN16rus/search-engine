@@ -13,27 +13,12 @@ import java.util.List;
 
 public class Lemmatizer
 {
-
-//    public static HashMap<String, Integer> getLuceneMap() {
-//        return luceneMap;
-//    }
-//
-////    private static HashMap<String,Integer> luceneMap;
-//
-//    private JdbcTemplate jdbcTemplate;
-//
-//    @Autowired
-//    public void setDataSource(DataSource dataSource){
-//        this.jdbcTemplate = new JdbcTemplate(dataSource);
-//
-//    }
-
     public static void LemmatizerText(JdbcTemplate jdbcTemplate, String textLem){
 
         try {
             HashMap<String,Integer> luceneMap = new HashMap<>();
             LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
-            String[] textSplit = textLem.replaceAll("[^а-яА-ЯёЁ ]", "").toLowerCase().split("\\s+");
+            String[] textSplit = textLem.replaceAll("[^а-яА-ЯёЁ ]", " ").toLowerCase().split("\\s+");
             for (String string : textSplit){
                 if (string.length() == 0){
                     continue;
@@ -76,16 +61,11 @@ public class Lemmatizer
 ////            System.out.println(key + " - " + value);
 //        }
 //    }
-
     public synchronized static void outputMap(JdbcTemplate jdbcTemplate,HashMap luceneMap){
         StringBuilder insertQuery = new StringBuilder();
         for (Object name: luceneMap.keySet()){
-
             String key = name.toString();
             insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1)");
-
-//            String value = luceneMap.get(name).toString();
-//            System.out.println(key + " - " + value);
         }
         jdbcTemplate.update("INSERT INTO lemma(lemma,frequency) VALUES "+ insertQuery.toString() +
                 "ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");

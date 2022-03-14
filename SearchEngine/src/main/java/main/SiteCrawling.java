@@ -1,20 +1,18 @@
 package main;
 
 import main.model.Field;
+import main.model.FieldMapper;
 import main.model.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.util.Assert;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.RecursiveAction;
 
@@ -38,7 +36,6 @@ public class SiteCrawling  extends RecursiveAction
 
     }
 
-
     public static DataSource mysqlDataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
@@ -48,33 +45,48 @@ public class SiteCrawling  extends RecursiveAction
         return dataSource;
     }
 
-    public List findAllField() {
-        String sql = "SELECT selector FROM search_engine.field";
-        return jdbcTemplate.queryForList(sql,String.class);
+    public void dropTable(){
+        String sql = "TRUNCATE lemma";
+        jdbcTemplate.update(sql);
+        sql = "TRUNCATE page";
+        jdbcTemplate.update(sql);
     }
+    public List<Field> findAllField() {
+        String sql = "SELECT * FROM search_engine.field";
+        Field field = jdbcTemplate.queryForObject(sql, new FieldMapper());
+        return field;
+    }
+
+
+//    public List findAllField() {
+//        String sql = "SELECT selector FROM search_engine.field";
+//        return jdbcTemplate.queryForList(sql,String.class);
+//    }
 
     public void addField(Page link){
         jdbcTemplate.update("INSERT IGNORE INTO page(path, code,content) VALUES(?,?,?)",
                             link.getPath(),link.getCode(),link.getContent());
     }
-
     public void lemText(Document document){
+        StringBuilder stringBuilder = new StringBuilder();
         for (Object tag : findAllField()){
-            Elements element1 = document.select(tag.toString());
-            for (Element em1 : element1){
-                Lemmatizer.LemmatizerText(jdbcTemplate,em1.text());
-            }
+            System.out.println(tag.getClass().toString());
+//            stringBuilder.append(document.select(tag.toString()).text() + " ");
         }
+//        Lemmatizer.LemmatizerText(jdbcTemplate,stringBuilder.toString());
     }
 
     @Override
     protected void compute() {
         try {
+
             setDataSource(mysqlDataSource());
             if (nestingСounter == 0 ) {
                 nestingСounter = 1;
                 urlOne = url;
+                dropTable();
             }
+
             List<SiteCrawling> tasks =  new ArrayList<>();
             Thread.sleep(1000);
             Document document = Jsoup.connect(url)
@@ -83,10 +95,16 @@ public class SiteCrawling  extends RecursiveAction
                     .maxBodySize(0).get();
 
 
+            String href = urlOne.charAt(urlOne.length() - 1) == '/'  ?
+                    url.replaceAll(urlOne, "/") : url.replaceAll(urlOne, "");
+
+            org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
+            Page link = new Page(href,statusCode.statusCode(),document.toString()) ;
+            siteUrlListAfter.add(url);
+            addField(link);
+
+
             Elements element = document.select("a");
-
-            lemText(document);
-
             for (Element em : element){
                 String absHref = em.attr("abs:href");
                 int indexJava = absHref.indexOf(url);
@@ -95,25 +113,13 @@ public class SiteCrawling  extends RecursiveAction
                     task.fork();
                     tasks.add(task);
                     siteUrlListAfter.add(absHref);
-                    String href = url.charAt(urlOne.length() - 1) == '/'  ?
-                            absHref.replaceAll(urlOne, "/") : absHref.replaceAll(urlOne, "/");
-
-                    org.jsoup.Connection.Response statusCode = Jsoup.connect(absHref).execute();
-                    Page link = new Page(href,statusCode.statusCode(),document.toString()) ;
-
-                    addField(link);
-
-
-
-//                    PreparedStatement preparedStatement = connection.prepareStatement("INSERT IGNORE INTO page(path, code,content) " +
-//                            "VALUES(?,?,?)");
-//                    preparedStatement.setString(1,link.getPath());
-//                    preparedStatement.setInt(2,link.getCode());
-//                    preparedStatement.setString(3, link.getContent());
-//                    preparedStatement.executeUpdate();
                 }
 
             }
+
+
+            lemText(document);
+
 
             for (SiteCrawling item : tasks){
                 item.join();

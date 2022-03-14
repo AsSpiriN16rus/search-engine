@@ -17,11 +17,11 @@ databaseChangeLog:
                   name: lemma
                   type: varchar(255)
                   constraints:
-                    primaryKey: true
+                    unique: true
+                    uniqueConstraintName: lemma_url
                     nullable: true
               - column:
                   name: frequency
                   type: bigint
                   constraints:
-                    primaryKey: true
                     nullable: true
