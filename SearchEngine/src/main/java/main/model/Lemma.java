@@ -17,6 +17,10 @@ public class Lemma
     @Column(nullable = false)
     private int frequency;
 
+    public Lemma(int id, String lemma, String frequency) {
+    }
+
+
     public int getId() {
         return id;
     }

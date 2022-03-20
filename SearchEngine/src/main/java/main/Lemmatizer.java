@@ -1,11 +1,10 @@
 package main;
 
+import liquibase.pro.packaged.S;
+import main.model.Index;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -13,10 +12,42 @@ import java.util.List;
 
 public class Lemmatizer
 {
-    public static void LemmatizerText(JdbcTemplate jdbcTemplate, String textLem){
+    private static DataBase dataBase;
 
+    public static void lemRank(HashMap documentWeight, String url){
+        HashMap<String, Double> rankText = new HashMap();
+        for (Object name: documentWeight.keySet()){
+            String key = name.toString();
+            Double weight = Double.valueOf(documentWeight.get(name).toString());
+            HashMap lemValue = lemmatizerText(key, false);
+            for (Object qw : lemValue.keySet()){
+                Double value = Double.valueOf(lemValue.get(qw).toString());
+                if (rankText.containsKey(qw.toString())){
+                    Double valueMap = Double.valueOf(rankText.get(qw));
+                    rankText.put(qw.toString(), (value * weight) + valueMap);
+                }else {
+                    rankText.put(qw.toString(), value * weight);
+                }
+            }
+        }
+
+        for (Object name: rankText.keySet()){
+            Float weight = Float.valueOf(rankText.get(name).toString());
+            Index index = new Index();
+            index.setLemmaId(dataBase.getLemmaId(name.toString()));
+            index.setRank(weight);
+            index.setPageId(dataBase.getPageId(url));
+            dataBase.addIndex(index);
+        }
+
+
+    }
+
+    public static HashMap<String, Integer> lemmatizerText(String textLem , Boolean fullText){
+        dataBase = new DataBase();
+        HashMap<String,Integer> luceneMap = new HashMap<>();
         try {
-            HashMap<String,Integer> luceneMap = new HashMap<>();
+
             LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
             String[] textSplit = textLem.replaceAll("[^а-яА-ЯёЁ ]", " ").toLowerCase().split("\\s+");
             for (String string : textSplit){
@@ -44,30 +75,12 @@ public class Lemmatizer
                     }
                 }
             }
-            outputMap(jdbcTemplate, luceneMap);
+            if (fullText == true) {
+                dataBase.outputMap(luceneMap);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-    }
-
-//    public synchronized static void outputMap(JdbcTemplate jdbcTemplate,HashMap luceneMap){
-//        for (Object name: luceneMap.keySet()){
-//
-//            String key = name.toString();
-//            jdbcTemplate.update("INSERT INTO lemma(lemma, `frequency`) VALUES('" + key + "',1)" +
-//                    "ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
-////            String value = luceneMap.get(name).toString();
-////            System.out.println(key + " - " + value);
-//        }
-//    }
-    public synchronized static void outputMap(JdbcTemplate jdbcTemplate,HashMap luceneMap){
-        StringBuilder insertQuery = new StringBuilder();
-        for (Object name: luceneMap.keySet()){
-            String key = name.toString();
-            insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1)");
-        }
-        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency) VALUES "+ insertQuery.toString() +
-                "ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
+        return luceneMap;
     }
 }

@@ -1,14 +1,13 @@
 package main;
 
+import liquibase.pro.packaged.D;
 import main.model.Field;
-import main.model.FieldMapper;
 import main.model.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
@@ -22,69 +21,35 @@ public class SiteCrawling  extends RecursiveAction
     private static String urlOne;
     private static int nestingСounter = 0;
     private static Set<String> siteUrlListAfter = new HashSet<>();
-//    private static Connection connection = DBConnection.getConnection() ;
     public SiteCrawling(String url) {
         this.url = url;
     }
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    public void setDataSource(DataSource dataSource){
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-
-    }
-
-    public static DataSource mysqlDataSource() {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        dataSource.setUrl("jdbc:mysql://localhost:3306/search_engine?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC");
-        dataSource.setUsername("root");
-        dataSource.setPassword("q1w2e3r4t5A1");
-        return dataSource;
-    }
-
-    public void dropTable(){
-        String sql = "TRUNCATE lemma";
-        jdbcTemplate.update(sql);
-        sql = "TRUNCATE page";
-        jdbcTemplate.update(sql);
-    }
-    public List<Field> findAllField() {
-        String sql = "SELECT * FROM search_engine.field";
-        Field field = jdbcTemplate.queryForObject(sql, new FieldMapper());
-        return field;
-    }
+    private static DataBase dataBase = new DataBase();
 
 
-//    public List findAllField() {
-//        String sql = "SELECT selector FROM search_engine.field";
-//        return jdbcTemplate.queryForList(sql,String.class);
-//    }
 
-    public void addField(Page link){
-        jdbcTemplate.update("INSERT IGNORE INTO page(path, code,content) VALUES(?,?,?)",
-                            link.getPath(),link.getCode(),link.getContent());
-    }
-    public void lemText(Document document){
+    public void lemText(Document document, String url){
         StringBuilder stringBuilder = new StringBuilder();
-        for (Object tag : findAllField()){
-            System.out.println(tag.getClass().toString());
-//            stringBuilder.append(document.select(tag.toString()).text() + " ");
+        HashMap <String,Double> documentWeight = new HashMap<>();
+        for (Field tag :  dataBase.findAllField()){
+
+            String tagText = document.select(tag.getSelector()).text();
+            documentWeight.put(tagText, tag.getWeight());
+            stringBuilder.append(tagText + " ");
         }
-//        Lemmatizer.LemmatizerText(jdbcTemplate,stringBuilder.toString());
+
+
+        Lemmatizer.lemmatizerText(stringBuilder.toString(), true);
+        Lemmatizer.lemRank(documentWeight, url);
     }
 
     @Override
     protected void compute() {
         try {
-
-            setDataSource(mysqlDataSource());
             if (nestingСounter == 0 ) {
                 nestingСounter = 1;
                 urlOne = url;
-                dropTable();
+                dataBase.dropTable();
             }
 
             List<SiteCrawling> tasks =  new ArrayList<>();
@@ -101,7 +66,7 @@ public class SiteCrawling  extends RecursiveAction
             org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
             Page link = new Page(href,statusCode.statusCode(),document.toString()) ;
             siteUrlListAfter.add(url);
-            addField(link);
+            dataBase.addField(link);
 
 
             Elements element = document.select("a");
@@ -118,8 +83,7 @@ public class SiteCrawling  extends RecursiveAction
             }
 
 
-            lemText(document);
-
+            lemText(document,href);
 
             for (SiteCrawling item : tasks){
                 item.join();

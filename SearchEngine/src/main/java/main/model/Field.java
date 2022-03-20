@@ -1,11 +1,14 @@
 package main.model;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "field")
 public class Field
 {
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
@@ -17,7 +20,16 @@ public class Field
     private String selector;
 
     @Column(nullable = false)
-    private int weight;
+    private double weight;
+
+    public Field() {
+    }
+    public Field(int id, String name, String selector, double weight) {
+        this.id = id;
+        this.name = name;
+        this.selector = selector;
+        this.weight = weight;
+    }
 
     public int getId() {
         return id;
@@ -43,11 +55,11 @@ public class Field
         this.selector = selector;
     }
 
-    public int getWeight() {
+    public double getWeight() {
         return weight;
     }
 
-    public void setWeight(int weight) {
+    public void setWeight(double weight) {
         this.weight = weight;
     }
 
