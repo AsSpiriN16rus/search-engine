@@ -15,11 +15,8 @@ import java.util.List;
 public class DataBase {
 
     @Autowired
-    private JdbcTemplate jdbcTemplate = new JdbcTemplate(mysqlDataSource());
+    private JdbcTemplate jdbcTemplate;
 
-    public JdbcTemplate getJdbcTemplate() {
-        return jdbcTemplate;
-    }
 
 //    @Autowired
 //    public void setDataSource(DataSource dataSource){
@@ -27,14 +24,14 @@ public class DataBase {
 //
 //    }
 
-    public static DataSource mysqlDataSource() {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-        dataSource.setUrl("jdbc:mysql://localhost:3306/search_engine?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC");
-        dataSource.setUsername("root");
-        dataSource.setPassword("q1w2e3r4t5A1");
-        return dataSource;
-    }
+//    public static DataSource mysqlDataSource() {
+//        DriverManagerDataSource dataSource = new DriverManagerDataSource();
+//        dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+//        dataSource.setUrl("jdbc:mysql://localhost:3306/search_engine?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC");
+//        dataSource.setUsername("root");
+//        dataSource.setPassword("q1w2e3r4t5A1");
+//        return dataSource;
+//    }
 
     public void dropTable(){
         String sql = "TRUNCATE lemma";
