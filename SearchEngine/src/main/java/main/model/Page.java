@@ -12,11 +12,12 @@ public class Page implements Serializable
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
 
-    public Page(String path, int code, String content) {
+    public Page(int id, String path, int code, String content) {
         this.path = path;
         this.code = code;
         this.content = content;
     }
+    
     @Column(nullable = false)
     private String path;
     @Column(nullable = false)

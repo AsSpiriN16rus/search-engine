@@ -9,7 +9,11 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.util.*;
 import java.util.concurrent.RecursiveAction;
 
@@ -20,28 +24,16 @@ public class SiteCrawling  extends RecursiveAction
     private static String urlOne;
     private static int nestingСounter = 0;
     private static Set<String> siteUrlListAfter = new HashSet<>();
-    public SiteCrawling(){}
-    public SiteCrawling(String url) {
-        this.url = url;
-    }
-//    public static DataBase dataBase = new DataBase();
+
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-//    @Autowired
-//    public void setDataSource(DataSource dataSource){
-//        this.jdbcTemplate = new JdbcTemplate(dataSource);
-//
-//    }
-
-//    public static DataSource mysqlDataSource() {
-//        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-//        dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-//        dataSource.setUrl("jdbc:mysql://localhost:3306/search_engine?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC");
-//        dataSource.setUsername("root");
-//        dataSource.setPassword("q1w2e3r4t5A1");
-//        return dataSource;
-//    }
+    public SiteCrawling(){}
+    public SiteCrawling(String url, JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.url = url;
+    }
 
 //    public void lemText(Document document, String url){
 //        StringBuilder stringBuilder = new StringBuilder();
@@ -61,7 +53,6 @@ public class SiteCrawling  extends RecursiveAction
     @Override
     protected void compute() {
         try {
-//            setDataSource(mysqlDataSource());
             if (nestingСounter == 0 ) {
                 nestingСounter = 1;
                 urlOne = url;
@@ -80,9 +71,9 @@ public class SiteCrawling  extends RecursiveAction
                     url.replaceAll(urlOne, "/") : url.replaceAll(urlOne, "");
 
             org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
-            Page link = new Page(href,statusCode.statusCode(),document.toString()) ;
+//            Page link = new Page(rs.getInt("id"), href,statusCode.statusCode(),document.toString()) ;
             siteUrlListAfter.add(url);
-            addField(link);
+            addField(href,statusCode.statusCode(),document.toString());
 
 
             Elements element = document.select("a");
@@ -90,7 +81,7 @@ public class SiteCrawling  extends RecursiveAction
                 String absHref = em.attr("abs:href");
                 int indexJava = absHref.indexOf(url);
                 if (indexJava != -1 && !siteUrlListAfter.contains(absHref)){
-                    SiteCrawling task = new SiteCrawling(absHref);
+                    SiteCrawling task = new SiteCrawling(absHref, jdbcTemplate);
                     task.fork();
                     tasks.add(task);
                     siteUrlListAfter.add(absHref);
@@ -113,9 +104,11 @@ public class SiteCrawling  extends RecursiveAction
     }
 
 
-    public void addField(Page link){
+
+
+    public void addField(String path, int code, String content){
         jdbcTemplate.update("INSERT IGNORE INTO page(path, code,content) VALUES(?,?,?)",
-                link.getPath(),link.getCode(),link.getContent());
+                path,code,content);
     }
 
     public void dropTable(){
@@ -126,22 +119,4 @@ public class SiteCrawling  extends RecursiveAction
         sql = "TRUNCATE `index`";
         jdbcTemplate.update(sql);
     }
-
-        public List<Field> findAllField() {
-
-            String sql = "SELECT * FROM search_engine.field";
-            List<Field> fields = jdbcTemplate.query(
-                    sql,
-                    (rs, rowNum) ->
-                            new Field(
-                                    rs.getInt("id"),
-                                    rs.getString("name"),
-                                    rs.getString("selector"),
-                                    rs.getDouble("weight")
-                            )
-            );
-        return fields;
-        }
-
-
 }
