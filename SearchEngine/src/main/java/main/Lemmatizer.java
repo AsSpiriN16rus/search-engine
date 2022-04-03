@@ -1,24 +1,20 @@
 package main;
 
 import main.model.Field;
+import main.model.Index;
 import main.model.Page;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.xml.sax.InputSource;
 
-import javax.lang.model.util.Elements;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.HashMap;
 import java.util.List;
-
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class Lemmatizer
@@ -27,92 +23,81 @@ public class Lemmatizer
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    public Lemmatizer() {
+    }
 
     public Lemmatizer(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-//    public static void lemRank(HashMap documentWeight, String url){
-//        HashMap<String, Double> rankText = new HashMap();
-//        for (Object name: documentWeight.keySet()){
-//            String key = name.toString();
-//            Double weight = Double.valueOf(documentWeight.get(name).toString());
-//            HashMap lemValue = lemmatizerText(key, false);
-//            for (Object qw : lemValue.keySet()){
-//                Double value = Double.valueOf(lemValue.get(qw).toString());
-//                if (rankText.containsKey(qw.toString())){
-//                    Double valueMap = Double.valueOf(rankText.get(qw));
-//                    rankText.put(qw.toString(), (value * weight) + valueMap);
-//                }else {
-//                    rankText.put(qw.toString(), value * weight);
-//                }
-//            }
-//        }
-//
-//        for (Object name: rankText.keySet()){
-//            Float weight = Float.valueOf(rankText.get(name).toString());
-//            Index index = new Index();
-//            index.setLemmaId(dataBase.getLemmaId(name.toString()));
-//            index.setRank(weight);
-//            index.setPageId(dataBase.getPageId(url));
-//            dataBase.addIndex(index);
-//        }
-//
-//
-//    }
 
+    public void lemText(Boolean rank){
+        List<Page> pages = findAllPage();
 
-
-//    public void lemText(Document document, String url){
-//        StringBuilder stringBuilder = new StringBuilder();
-//        HashMap <String,Double> documentWeight = new HashMap<>();
-//        for (Field tag :  findAllField()){
-//            String tagText = document.select(tag.getSelector()).text();
-//            documentWeight.put(tagText, tag.getWeight());
-//            stringBuilder.append(tagText + " ");
-//        }
-//
-//
-////        Lemmatizer.lemmatizerText(stringBuilder.toString(), true);
-////        Lemmatizer.lemRank(documentWeight, url);
-//    }
-
-    public void lemText(String url){
-        HashMap <String,String> getDocumet = new HashMap<>();
-        url = url.charAt(url.length() - 1) == '/'  ?
-                url.substring(0, url.length() - 1) : url.substring(0, url.length() );
-        for (Page page : findAllPage()){
-            getDocumet.put(url + page.getPath(), page.getContent());
+        for (Page page : pages){
+            HashMap <String,Double> documentWeight = new HashMap<>();
+            StringBuilder stringBuilder = new StringBuilder();
             for (Field field : findAllField()){
-
                 Document doc = Jsoup.parse(page.getContent());
-                String tagText = doc.select("body").text();
-                System.out.println((field.getSelector()));
-                System.out.println(tagText);
-                System.out.println("-----------");
+                String tagText = doc.select(field.getSelector()).text();
+                documentWeight.put(tagText, field.getWeight());
+                stringBuilder.append(tagText + " ");
             }
-            System.out.println("+++++++++++++++");
+            if (rank) {
+                lemmatizerText(stringBuilder.toString(), true);
+            }else {
+            ExecutorService executorService = Executors.newSingleThreadExecutor();
+            executorService.execute(new Runnable(){
+                public void run(){
+
+                    lemRank(documentWeight, page.getPath());
+                }
+            });
+            executorService.shutdown();
+            }
         }
 
-        StringBuilder stringBuilder = new StringBuilder();
-        HashMap <String,Double> documentWeight = new HashMap<>();
-//        for (Field tag :  findAllField()){
-//            String tagText = document.select(tag.getSelector()).text();
-//            documentWeight.put(tagText, tag.getWeight());
-//            stringBuilder.append(tagText + " ");
-//        }
-
-
-    //        Lemmatizer.lemmatizerText(stringBuilder.toString(), true);
-    //        Lemmatizer.lemRank(documentWeight, url);
     }
 
-    public static HashMap<String, Integer> lemmatizerText(String textLem , Boolean fullText){
+    public void lemRank(HashMap documentWeight, String url){
+
+        HashMap<String, Double> rankText = new HashMap();
+
+        for (Object name: documentWeight.keySet()){
+            String tagText = name.toString();
+            Double weight = Double.valueOf(documentWeight.get(name).toString());
+            HashMap lemValue = lemmatizerText(tagText, false);
+            for (Object lemma : lemValue.keySet()){
+                Double value = Double.valueOf(lemValue.get(lemma).toString());
+                if (rankText.containsKey(lemma.toString())){
+                    Double valueMap = Double.valueOf(rankText.get(lemma));
+                    rankText.put(lemma.toString(), (value * weight) + valueMap);
+                }else {
+                    rankText.put(lemma.toString(), value * weight);
+                }
+            }
+        }
+
+        for (Object name: rankText.keySet()){
+            Float weight = Float.valueOf(rankText.get(name).toString());
+            Index index = new Index();
+            index.setLemmaId(getLemmaId(name.toString()));
+            index.setRank(weight);
+            index.setPageId(getPageId(url));
+            addIndex(index);
+        }
+
+
+    }
+
+
+    public HashMap<String, Integer> lemmatizerText(String textLem , Boolean fullText){
 
         HashMap<String,Integer> luceneMap = new HashMap<>();
         try {
 
             LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
+            textLem = textLem.replaceAll("[ёЁ]", "e");
             String[] textSplit = textLem.replaceAll("[^а-яА-ЯёЁ ]", " ").toLowerCase().split("\\s+");
             for (String string : textSplit){
                 if (string.length() == 0){
@@ -140,7 +125,7 @@ public class Lemmatizer
                 }
             }
             if (fullText == true) {
-//                outputMap(luceneMap);
+                outputMap(luceneMap);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -182,9 +167,33 @@ public class Lemmatizer
         StringBuilder insertQuery = new StringBuilder();
         for (Object name: luceneMap.keySet()){
             String key = name.toString();
+//            jdbcTemplate.update("INSERT INTO lemma(lemma, frequency) VALUES('" + key +"', 1) ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
             insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1)");
         }
         jdbcTemplate.update("INSERT INTO lemma(lemma,frequency) VALUES "+ insertQuery.toString() +
                 "ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
     }
+
+
+
+
+    public Integer getLemmaId(String lemma){
+        String sql = "SELECT ID FROM search_engine.lemma WHERE lemma = ?";
+
+        return jdbcTemplate.queryForObject(
+                sql, new Object[]{lemma}, Integer.class);
+    }
+
+    public Integer getPageId(String page){
+        String sql = "SELECT ID FROM search_engine.page WHERE path = ?";
+
+        return jdbcTemplate.queryForObject(
+                sql, new Object[]{page}, Integer.class);
+    }
+
+    public void addIndex(Index index){
+        jdbcTemplate.update("INSERT IGNORE INTO `index`(page_id, lemma_id,`rank`) VALUES(?,?,?)",
+                index.getPageId(),index.getLemmaId(), index.getRank());
+    }
+
 }

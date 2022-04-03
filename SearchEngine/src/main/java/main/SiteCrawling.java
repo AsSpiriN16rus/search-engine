@@ -1,7 +1,5 @@
 package main;
 
-import main.model.Field;
-import main.model.Page;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -90,7 +88,7 @@ public class SiteCrawling  extends RecursiveAction
             }
 
 //
-//            lemText(document,href);
+//            Lemmatizer.lemText(document,href, jdbcTemplate);
 
             for (SiteCrawling item : tasks){
                 item.join();
