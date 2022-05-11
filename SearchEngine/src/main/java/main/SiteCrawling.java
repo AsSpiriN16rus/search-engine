@@ -47,6 +47,8 @@ public class SiteCrawling  extends RecursiveAction
 ////        Lemmatizer.lemmatizerText(stringBuilder.toString(), true);
 ////        Lemmatizer.lemRank(documentWeight, url);
 //    }
+    
+
 
     @Override
     protected void compute() {

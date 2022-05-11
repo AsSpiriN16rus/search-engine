@@ -24,22 +24,27 @@ public class InitBean
 
     @PostConstruct
     public void run(){
-        System.out.println("Start forkJoinPool");
-        String url = "http://www.playback.ru/";
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        forkJoinPool.invoke(new SiteCrawling(url, jdbcTemplate));           // ready forkjoin
-        System.out.println("End forkJoinPool");
+//        System.out.println("Start forkJoinPool");
+//        String url = "http://www.playback.ru/";
+//        ForkJoinPool forkJoinPool = new ForkJoinPool();
+//        forkJoinPool.invoke(new SiteCrawling(url, jdbcTemplate));           // ready forkjoin
+//        System.out.println("End forkJoinPool");
+//
+//        System.out.println("Start Lemmatizer");
+//        Lemmatizer lemmatizer = new Lemmatizer(jdbcTemplate);
+//        lemmatizer.lemText("lemmatizer");                                       // ready lemmatizer
+//        System.out.println("End Lemmatizer");
+//
+//        System.out.println("Start Lemmatizer Rank ");
+//        lemmatizer.lemText("rank");                                      // ready lemmatizer rank
+//        System.out.println("End Lemmatizer Rank ");
 
-        System.out.println("Start Lemmatizer");
-        Lemmatizer lemmatizer = new Lemmatizer(jdbcTemplate);
-        lemmatizer.lemText(true);                                       // ready lemmatizer
-        System.out.println("End Lemmatizer");
+        System.out.println("Start Search Rank ");
+        String searchText = "телефон хонор старый дешево ";
+        SearchEngine searchEngine = new SearchEngine(jdbcTemplate,searchText);
+        searchEngine.search();
+        System.out.println("End Search Rank ");
 
-        System.out.println("Start Lemmatizer Rank ");
-        lemmatizer.lemText(false);                                      // ready lemmatizer rank
-        System.out.println("End Lemmatizer Rank ");
-        String searchText = "";
-        HashMap aa = lemmatizer.lemmatizerText(searchText,false);
     }
 
 }

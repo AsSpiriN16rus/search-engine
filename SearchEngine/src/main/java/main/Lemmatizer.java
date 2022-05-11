@@ -23,15 +23,13 @@ public class Lemmatizer
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-    public Lemmatizer() {
-    }
 
     public Lemmatizer(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
 
-    public void lemText(Boolean rank){
+    public void lemText(String rank){
         List<Page> pages = findAllPage();
 
         for (Page page : pages){
@@ -43,18 +41,39 @@ public class Lemmatizer
                 documentWeight.put(tagText, field.getWeight());
                 stringBuilder.append(tagText + " ");
             }
-            if (rank) {
-                lemmatizerText(stringBuilder.toString(), true);
-            }else {
-            ExecutorService executorService = Executors.newSingleThreadExecutor();
-            executorService.execute(new Runnable(){
-                public void run(){
 
-                    lemRank(documentWeight, page.getPath());
-                }
-            });
-            executorService.shutdown();
+            switch (rank){
+                case "lemmatizer":
+                    lemmatizerText(stringBuilder.toString(), true);
+                    break;
+
+                case "rank":
+                    ExecutorService executorService = Executors.newSingleThreadExecutor();
+                    executorService.execute(new Runnable(){
+                        public void run(){
+
+                            lemRank(documentWeight, page.getPath());
+                        }
+                    });
+                    executorService.shutdown();
+                    break;
+
+                default:
+                    break;
             }
+
+//            if (rank) {
+//                lemmatizerText(stringBuilder.toString(), true);
+//            }else {
+//            ExecutorService executorService = Executors.newSingleThreadExecutor();
+//            executorService.execute(new Runnable(){
+//                public void run(){
+//
+//                    lemRank(documentWeight, page.getPath());
+//                }
+//            });
+//            executorService.shutdown();
+//            }
         }
 
     }
