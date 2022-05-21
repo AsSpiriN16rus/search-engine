@@ -1,13 +1,13 @@
 package main;
-import liquibase.pro.packaged.I;
 import main.model.Index;
 import main.model.Lemma;
-import main.model.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.ResultSet;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SearchEngine
 {
@@ -33,6 +33,100 @@ public class SearchEngine
             }
         }
 
+        lemmaSort(lemmaSearh);
+
+        ArrayList<Index> searchFiltering  = lemmaFilter(lemmaSearh);
+
+        Map<Integer, Float> relativeRelevance = rank(searchFiltering);
+
+        for (Object key : relativeRelevance.keySet()){
+            System.out.println("idPage - " +  key.toString());
+            System.out.println("rankPage - " +  relativeRelevance.get(key));
+        }
+
+
+    }
+
+    private Map<Integer, Float> rank(ArrayList<Index> searchFiltering){
+        HashMap<Integer,Float> absoluteRelevance = new HashMap<>();
+        float rank = 0;
+        for (int i = 0; i < searchFiltering.size(); i++){
+            if (i + 1 < searchFiltering.size()) {
+                if (searchFiltering.get(i).getPageId() == searchFiltering.get(i + 1).getPageId()) {
+                    rank += searchFiltering.get(i).getRank();
+                } else if (searchFiltering.get(i).getPageId() != searchFiltering.get(i + 1).getPageId()) {
+                    rank += searchFiltering.get(i).getRank();
+                    absoluteRelevance.put(searchFiltering.get(i).getPageId(), rank);
+                    rank = 0;
+                }
+            }else {
+                rank += searchFiltering.get(i).getRank();
+                absoluteRelevance.put(searchFiltering.get(i).getPageId(), rank);
+                absoluteRelevance.put(29, 6.4F);
+            }
+        }
+
+        float maxRelevance = Collections.max(absoluteRelevance.values());
+
+        Map<Integer,Float> relativeRelevance = new HashMap<>();
+
+        for (Object key : absoluteRelevance.keySet()){
+            float keyRelevance = absoluteRelevance.get(key) / maxRelevance;
+            relativeRelevance.put((Integer) key, keyRelevance);
+        }
+
+
+//        relativeRelevance.entrySet().stream()
+//                .sorted(Map.Entry.<Integer, Float>comparingByValue().reversed());
+
+
+//        HashMap<Integer, Float> aa = relativeRelevance.entrySet().stream()
+//                .sorted(Map.Entry.<Integer, Float>comparingByValue().reversed()).collect(Collectors.mapping(new HashMap<Integer, Float>()));
+
+
+
+        return relativeRelevance;
+    }
+
+    private ArrayList<Index> lemmaFilter(List<Lemma> lemmaSearh){
+        ArrayList<Index> searchFiltering = new ArrayList<>();
+
+        for(int i = 0 ; i < lemmaSearh.toArray().length; i++)
+        {
+            List<Index> indexList = getIndexSearch(lemmaSearh.get(i).getId());
+            ArrayList<Index> searchFiltering3 = new ArrayList<>();
+            for (Index index : indexList){
+                if (i == 0) {
+                    searchFiltering.add(index);
+                }else {
+                    int a = 0;
+                    for (Index index1 : searchFiltering){
+                        if (index.getPageId() == index1.getPageId() && a == 0){
+                            searchFiltering3.add(index);
+                            searchFiltering3.add(index1);
+                            a++;
+                        }else if (index.getPageId() == index1.getPageId()){
+                            searchFiltering3.add(index1);
+                        }
+                    }
+                }
+
+            }
+
+            if (i != 0) {
+                searchFiltering.clear();
+                searchFiltering.addAll(searchFiltering3);
+            }
+
+        }
+//        System.out.println(searchFiltering.size() + "search");
+//        for (Index index : searchFiltering){
+//            System.out.println(index.getPageId() + " " +  index.getLemmaId() + " " + index.getId());
+//        }
+        return searchFiltering;
+    }
+
+    private void lemmaSort(List<Lemma> lemmaSearh){
         lemmaSearh.sort(new Comparator<Lemma>() {
             @Override
             public int compare(Lemma o1, Lemma o2) {
@@ -41,20 +135,6 @@ public class SearchEngine
                 else return -1;
             }
         });
-
-        for(int i = 0 ; i < lemmaSearh.toArray().length; i++)
-        {
-//            System.out.println(lemmaSearh.get(i).getLemma() + " " + lemmaSearh.get(i).getFrequency());
-//            System.out.println(lemmaSearh.get(i).getId());
-
-
-           List<Index> indexList = getIndexSearch(lemmaSearh.get(i).getId());
-           for (Index index : indexList){
-               System.out.println(index.getPageId() + " " +  index.getLemmaId());
-           }
-            System.out.println("-0--------------");
-        }
-
 
     }
 
@@ -75,7 +155,7 @@ public class SearchEngine
             index.setId(rs.getInt("id"));
             index.setPageId(rs.getInt("page_id"));
             index.setLemmaId(rs.getInt("lemma_id"));
-            index.setRank(rs.getInt("rank"));
+            index.setRank(rs.getFloat("rank"));
             return index;
         });
         return new ArrayList<>(indexList);
