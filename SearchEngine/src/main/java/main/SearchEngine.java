@@ -1,13 +1,12 @@
 package main;
-import main.model.Index;
-import main.model.Lemma;
+import main.model.*;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.ResultSet;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class SearchEngine
 {
@@ -32,60 +31,85 @@ public class SearchEngine
                 lemmaSearh.add(lemma);
             }
         }
+        ArrayList<IndexWithRelevance> searchRelevance;
+        if (lemmaSearh != null) {
+            lemmaSort(lemmaSearh);
 
-        lemmaSort(lemmaSearh);
+            ArrayList<Index> searchFiltering = lemmaFilter(lemmaSearh);
+            searchRelevance = rank(searchFiltering);
+            searchRelevance.sort(((o1, o2) -> Float.compare(o2.getAbsoluteRelevance(), o1.getAbsoluteRelevance())));
+            for (IndexWithRelevance index : searchRelevance){
+                System.out.println("idPage - " + index.getPageId());
+                System.out.println("rankPage - " + index.getRelativeRelevance());
 
-        ArrayList<Index> searchFiltering  = lemmaFilter(lemmaSearh);
+                List<Page> pageList = getPageSearch(index.getPageId());
+                PageSearchRelevance pageSearchRelevance = new PageSearchRelevance();
+                pageSearchRelevance.setRelevance(index.getRelativeRelevance());
+                pageSearchRelevance.setUri(pageList.get(0).getPath());
 
-        Map<Integer, Float> relativeRelevance = rank(searchFiltering);
+                System.out.println(pageList.get(0).getPath() + " path");
 
-        for (Object key : relativeRelevance.keySet()){
-            System.out.println("idPage - " +  key.toString());
-            System.out.println("rankPage - " +  relativeRelevance.get(key));
+
+                Document doc = Jsoup.parse(pageList.get(0).getContent());
+                String tagText = doc.select("title").text();
+                pageSearchRelevance.setTitle(tagText);
+                System.out.println(tagText);
+
+            }
+
+
+
+
+
+        }else {
+            System.out.println("Не найдено результатов(");
         }
+
 
 
     }
 
-    private Map<Integer, Float> rank(ArrayList<Index> searchFiltering){
-        HashMap<Integer,Float> absoluteRelevance = new HashMap<>();
-        float rank = 0;
+    private ArrayList<IndexWithRelevance> rank(ArrayList<Index> searchFiltering){
+        ArrayList<IndexWithRelevance> searchRelevance = new ArrayList<>();
+        float rank = 0.0F;
         for (int i = 0; i < searchFiltering.size(); i++){
             if (i + 1 < searchFiltering.size()) {
                 if (searchFiltering.get(i).getPageId() == searchFiltering.get(i + 1).getPageId()) {
-                    rank += searchFiltering.get(i).getRank();
+                    rank +=searchFiltering.get(i).getRank();
                 } else if (searchFiltering.get(i).getPageId() != searchFiltering.get(i + 1).getPageId()) {
-                    rank += searchFiltering.get(i).getRank();
-                    absoluteRelevance.put(searchFiltering.get(i).getPageId(), rank);
+                    rank +=searchFiltering.get(i).getRank();
+                    IndexWithRelevance index = new IndexWithRelevance();
+                    index.setAbsoluteRelevance(rank);
+                    index.setPageId(searchFiltering.get(i).getPageId());
+                    searchRelevance.add(index);
                     rank = 0;
                 }
             }else {
                 rank += searchFiltering.get(i).getRank();
-                absoluteRelevance.put(searchFiltering.get(i).getPageId(), rank);
-                absoluteRelevance.put(29, 6.4F);
+                IndexWithRelevance index = new IndexWithRelevance();
+                index.setAbsoluteRelevance(rank);
+                index.setPageId(searchFiltering.get(i).getPageId());
+                searchRelevance.add(index);
             }
         }
 
-        float maxRelevance = Collections.max(absoluteRelevance.values());
+        float maxRelevance = searchRelevance.get(0).getAbsoluteRelevance();
 
-        Map<Integer,Float> relativeRelevance = new HashMap<>();
 
-        for (Object key : absoluteRelevance.keySet()){
-            float keyRelevance = absoluteRelevance.get(key) / maxRelevance;
-            relativeRelevance.put((Integer) key, keyRelevance);
+        int a = 0;
+        for (int i = 0; i < searchRelevance.size(); i++){
+            if (searchRelevance.get(i).getAbsoluteRelevance() > maxRelevance){
+                maxRelevance = searchRelevance.get(i).getAbsoluteRelevance();
+            }
+            if (a == 1){
+                searchRelevance.get(i).setRelativeRelevance(searchRelevance.get(i).getAbsoluteRelevance() / maxRelevance);
+            }
+            if (i == searchRelevance.size() - 1 && a == 0){
+                i = -1;
+                a++;
+            }
         }
-
-
-//        relativeRelevance.entrySet().stream()
-//                .sorted(Map.Entry.<Integer, Float>comparingByValue().reversed());
-
-
-//        HashMap<Integer, Float> aa = relativeRelevance.entrySet().stream()
-//                .sorted(Map.Entry.<Integer, Float>comparingByValue().reversed()).collect(Collectors.mapping(new HashMap<Integer, Float>()));
-
-
-
-        return relativeRelevance;
+        return searchRelevance;
     }
 
     private ArrayList<Index> lemmaFilter(List<Lemma> lemmaSearh){
@@ -119,12 +143,9 @@ public class SearchEngine
             }
 
         }
-//        System.out.println(searchFiltering.size() + "search");
-//        for (Index index : searchFiltering){
-//            System.out.println(index.getPageId() + " " +  index.getLemmaId() + " " + index.getId());
-//        }
         return searchFiltering;
     }
+
 
     private void lemmaSort(List<Lemma> lemmaSearh){
         lemmaSearh.sort(new Comparator<Lemma>() {
@@ -157,6 +178,18 @@ public class SearchEngine
             index.setLemmaId(rs.getInt("lemma_id"));
             index.setRank(rs.getFloat("rank"));
             return index;
+        });
+        return new ArrayList<>(indexList);
+    }
+
+    public List<Page> getPageSearch(int id) {
+        List<Page> indexList = jdbcTemplate.query("SELECT * FROM search_engine.page where id = ?", new Object[]{id}, (ResultSet rs, int rowNum) ->{
+            Page page = new Page();
+            page.setId(rs.getInt("id"));
+            page.setPath(rs.getString("path"));
+            page.setCode(rs.getInt("code"));
+            page.setContent(rs.getString("content"));
+            return page;
         });
         return new ArrayList<>(indexList);
     }

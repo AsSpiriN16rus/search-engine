@@ -61,19 +61,6 @@ public class Lemmatizer
                 default:
                     break;
             }
-
-//            if (rank) {
-//                lemmatizerText(stringBuilder.toString(), true);
-//            }else {
-//            ExecutorService executorService = Executors.newSingleThreadExecutor();
-//            executorService.execute(new Runnable(){
-//                public void run(){
-//
-//                    lemRank(documentWeight, page.getPath());
-//                }
-//            });
-//            executorService.shutdown();
-//            }
         }
 
     }

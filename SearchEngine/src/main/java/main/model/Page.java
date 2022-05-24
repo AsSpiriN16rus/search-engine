@@ -12,6 +12,9 @@ public class Page implements Serializable
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
 
+    public Page() {
+    }
+
     public Page(int id, String path, int code, String content) {
         this.path = path;
         this.code = code;
