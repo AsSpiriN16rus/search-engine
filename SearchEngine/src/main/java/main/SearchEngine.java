@@ -20,9 +20,10 @@ public class SearchEngine
         this.searchText = searchText;
     }
 
-    public void search(){
+    public ArrayList<PageSearchRelevance> search(){
         Lemmatizer lemmatizer = new Lemmatizer(jdbcTemplate);
         HashMap searchLem = lemmatizer.lemmatizerText(searchText,false);
+
         List<Lemma> lemmaSearh = new ArrayList<>();
 
         for (Object key : searchLem.keySet()){
@@ -31,64 +32,119 @@ public class SearchEngine
                 lemmaSearh.add(lemma);
             }
         }
+
         ArrayList<IndexWithRelevance> searchRelevance;
         if (lemmaSearh != null) {
+
             lemmaSort(lemmaSearh);
 
             ArrayList<Index> searchFiltering = lemmaFilter(lemmaSearh);
+
             searchRelevance = rank(searchFiltering);
+
             searchRelevance.sort(((o1, o2) -> Float.compare(o2.getAbsoluteRelevance(), o1.getAbsoluteRelevance())));
-            for (IndexWithRelevance index : searchRelevance){
-                System.out.println("idPage - " + index.getPageId());
-                System.out.println("rankPage - " + index.getRelativeRelevance());
 
-                List<Page> pageList = getPageSearch(index.getPageId());
-                PageSearchRelevance pageSearchRelevance = new PageSearchRelevance();
-                pageSearchRelevance.setRelevance(index.getRelativeRelevance());
-                pageSearchRelevance.setUri(pageList.get(0).getPath());
+            ArrayList<PageSearchRelevance> pageSearchRelevancesList = pageRelevancesList(searchRelevance, lemmaSearh); // Final Search list!!
 
-                System.out.println(pageList.get(0).getPath() + " path");
-
-
-                Document doc = Jsoup.parse(pageList.get(0).getContent());
-                String tagText = doc.select("title").text();
-                pageSearchRelevance.setTitle(tagText);
-                System.out.println(tagText);
-
+            System.out.println(pageSearchRelevancesList.size());
+            for (PageSearchRelevance pageSearchRelevance : pageSearchRelevancesList){
+                System.out.println(pageSearchRelevance.getUri());
+                System.out.println("----------");
             }
 
-
-
-
-
+            return pageSearchRelevancesList;
         }else {
             System.out.println("Не найдено результатов(");
         }
+        return null;
+    }
+
+    private ArrayList<PageSearchRelevance> pageRelevancesList(ArrayList<IndexWithRelevance> searchRelevance, List<Lemma> lemmaSearh){
+        ArrayList<PageSearchRelevance> pageSearchRelevancesList = new ArrayList<>();
+
+        for (IndexWithRelevance index : searchRelevance){
+
+            List<Page> pageList = getPageSearch(index.getPageId());
+            PageSearchRelevance pageSearchRelevance = new PageSearchRelevance();
+            pageSearchRelevance.setRelevance(index.getRelativeRelevance());
+            pageSearchRelevance.setUri(pageList.get(0).getPath());
 
 
+            Document doc = Jsoup.parse(pageList.get(0).getContent());
+            String tagText = doc.select("title").text();
+            pageSearchRelevance.setTitle(tagText);
 
+            String[] textSplit = doc.text().split("\\.");
+
+            StringBuilder sb = new StringBuilder();
+
+            for (String string : textSplit){
+                if (string.length() == 0){
+                    continue;
+                }
+                for (Lemma lemma : lemmaSearh){
+
+                    int indexJava = string.indexOf(lemma.getLemma());
+                    int sizeLemma = lemma.getLemma().length();
+                    if (indexJava != -1){
+                        StringBuilder stringBuilder = new StringBuilder();
+                        stringBuilder.append(string);
+                        stringBuilder.insert(indexJava + sizeLemma, "<b>" );
+                        stringBuilder.insert(indexJava, "<b>" );
+                        sb.append(stringBuilder + ".\n");
+
+                    }
+                }
+            }
+
+            pageSearchRelevance.setSnippet(sb.toString());
+
+            pageSearchRelevancesList.add(pageSearchRelevance);
+//                System.out.println(sb);
+//                System.out.println();
+        }
+        return pageSearchRelevancesList;
     }
 
     private ArrayList<IndexWithRelevance> rank(ArrayList<Index> searchFiltering){
         ArrayList<IndexWithRelevance> searchRelevance = new ArrayList<>();
+
         float rank = 0.0F;
+//        ArrayList<Integer> lemmaId = new ArrayList<>();
+
         for (int i = 0; i < searchFiltering.size(); i++){
+//            System.out.println(searchFiltering.get(i).getLemmaId() + " idLEmma");
+//            System.out.println(searchFiltering.get(i).getPageId());
+
             if (i + 1 < searchFiltering.size()) {
                 if (searchFiltering.get(i).getPageId() == searchFiltering.get(i + 1).getPageId()) {
                     rank +=searchFiltering.get(i).getRank();
+//                    lemmaId.add(searchFiltering.get(i).getLemmaId());
                 } else if (searchFiltering.get(i).getPageId() != searchFiltering.get(i + 1).getPageId()) {
                     rank +=searchFiltering.get(i).getRank();
                     IndexWithRelevance index = new IndexWithRelevance();
+
+//                    lemmaId.add(searchFiltering.get(i).getLemmaId());
+//                    index.setLemma(lemmaId);
+
                     index.setAbsoluteRelevance(rank);
                     index.setPageId(searchFiltering.get(i).getPageId());
+
                     searchRelevance.add(index);
+
+//                    lemmaId.clear();
                     rank = 0;
                 }
             }else {
                 rank += searchFiltering.get(i).getRank();
                 IndexWithRelevance index = new IndexWithRelevance();
                 index.setAbsoluteRelevance(rank);
+                index.setLemmaId(searchFiltering.get(i).getLemmaId());
                 index.setPageId(searchFiltering.get(i).getPageId());
+
+//                lemmaId.add(searchFiltering.get(i).getLemmaId());
+//                index.setLemma(lemmaId);
+
                 searchRelevance.add(index);
             }
         }
@@ -163,6 +219,7 @@ public class SearchEngine
         List<Lemma> lemmaList = jdbcTemplate.query("SELECT * FROM search_engine.lemma where lemma = ?", new Object[]{lemmaSearch}, (ResultSet rs, int rowNum) ->{
             Lemma lemma = new Lemma();
             lemma.setId(rs.getInt("id"));
+            lemma.setId(rs.getInt("site_id"));
             lemma.setLemma(rs.getString("lemma"));
             lemma.setFrequency(rs.getInt("frequency"));
             return lemma;
@@ -186,6 +243,7 @@ public class SearchEngine
         List<Page> indexList = jdbcTemplate.query("SELECT * FROM search_engine.page where id = ?", new Object[]{id}, (ResultSet rs, int rowNum) ->{
             Page page = new Page();
             page.setId(rs.getInt("id"));
+            page.setId(rs.getInt("site_id"));
             page.setPath(rs.getString("path"));
             page.setCode(rs.getInt("code"));
             page.setContent(rs.getString("content"));

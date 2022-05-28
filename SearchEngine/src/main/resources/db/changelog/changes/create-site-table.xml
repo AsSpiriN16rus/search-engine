@@ -5,18 +5,25 @@
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
     http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
-    <changeSet author="admin" id="3">
-        <createTable tableName="lemma">
+
+    <changeSet author="admin" id="1">
+        <createTable tableName="site">
             <column autoIncrement="true" name="id" type="bigint">
                 <constraints primaryKey="true"/>
             </column>
-            <column name="site_id" type="bigint">
+            <column name="status" type="varchar(255)">
                 <constraints nullable="false"/>
             </column>
-            <column name="lemma" type="VARCHAR(255)">
-                <constraints nullable="false" unique="true" uniqueConstraintName="lemma_url"/>
+            <column name="status_time" type="datetime">
+                <constraints nullable="false"/>
             </column>
-            <column name="frequency" type="bigint">
+            <column name="last_error" type="LONGTEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="url" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
         </createTable>

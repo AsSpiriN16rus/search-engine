@@ -9,4 +9,5 @@
     <include file="/db/changelog/changes/create-field-table.xml"/>
     <include file="/db/changelog/changes/create-lemma-table.xml"/>
     <include file="/db/changelog/changes/create-index-table.xml"/>
+    <include file="/db/changelog/changes/create-site-table.xml"/>
 </databaseChangeLog>

@@ -16,6 +16,12 @@ import java.util.concurrent.ForkJoinPool;
 public class InitBean
 {
     private JdbcTemplate jdbcTemplate;
+    private String url;
+
+    public InitBean(JdbcTemplate jdbcTemplate,String url){
+        this.url = url;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Autowired
     public InitBean(JdbcTemplate jdbcTemplate){
@@ -39,11 +45,11 @@ public class InitBean
 //        lemmatizer.lemText("rank");                                      // ready lemmatizer rank
 //        System.out.println("End Lemmatizer Rank ");
 
-        System.out.println("Start Search Rank ");
-        String searchText = "телефон хонор старый дешево ";
-        SearchEngine searchEngine = new SearchEngine(jdbcTemplate,searchText);
-        searchEngine.search();
-        System.out.println("End Search Rank ");
+//        System.out.println("Start Search Rank ");
+//        String searchText = "телефон хонор старый дешево";
+//        SearchEngine searchEngine = new SearchEngine(jdbcTemplate,searchText);
+//        searchEngine.search();
+//        System.out.println("End Search Rank ");
 
     }
 

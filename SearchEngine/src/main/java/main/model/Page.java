@@ -15,7 +15,8 @@ public class Page implements Serializable
     public Page() {
     }
 
-    public Page(int id, String path, int code, String content) {
+    public Page(int id,int site_id, String path, int code, String content) {
+        this.site_id = site_id;
         this.path = path;
         this.code = code;
         this.content = content;
@@ -27,6 +28,19 @@ public class Page implements Serializable
     private int code;
     @Column(nullable = false)
     private String content;
+    @Column(nullable = false)
+    private int site_id;
+
+
+    public int getSite_id() {
+        return site_id;
+    }
+
+    public void setSite_id(int site_id) {
+        this.site_id = site_id;
+    }
+
+
 
     public int getId() {
         return id;

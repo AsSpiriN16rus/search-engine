@@ -11,6 +11,9 @@
             <column autoIncrement="true" name="id" type="bigint">
                 <constraints primaryKey="true"/>
             </column>
+            <column name="site_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
             <column name="path" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>

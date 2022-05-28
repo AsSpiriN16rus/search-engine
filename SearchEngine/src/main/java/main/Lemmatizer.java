@@ -146,6 +146,7 @@ public class Lemmatizer
                 (rs, rowNum) ->
                         new Page(
                                 rs.getInt("id"),
+                                rs.getInt("site_id"),
                                 rs.getString("path"),
                                 rs.getInt("code"),
                                 rs.getString("content")
@@ -174,9 +175,9 @@ public class Lemmatizer
         for (Object name: luceneMap.keySet()){
             String key = name.toString();
 //            jdbcTemplate.update("INSERT INTO lemma(lemma, frequency) VALUES('" + key +"', 1) ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
-            insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1)");
+            insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1, 1)");
         }
-        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency) VALUES "+ insertQuery.toString() +
+        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency,site_id) VALUES "+ insertQuery.toString() +
                 "ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
     }
 
