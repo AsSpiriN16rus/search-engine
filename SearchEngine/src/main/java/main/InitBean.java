@@ -12,6 +12,8 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.concurrent.ForkJoinPool;
 
+import static liquibase.repackaged.net.sf.jsqlparser.parser.feature.Feature.dropTable;
+
 @Component
 public class InitBean
 {
@@ -30,6 +32,7 @@ public class InitBean
 
     @PostConstruct
     public void run(){
+//        dropTable(jdbcTemplate);
 //        System.out.println("Start forkJoinPool");
 //        String url = "http://www.playback.ru/";
 //        ForkJoinPool forkJoinPool = new ForkJoinPool();
@@ -51,6 +54,15 @@ public class InitBean
 //        searchEngine.search();
 //        System.out.println("End Search Rank ");
 
+    }
+
+    public void dropTable(JdbcTemplate jdbcTemplate){
+        String sql = "TRUNCATE lemma";
+        jdbcTemplate.update(sql);
+        sql = "TRUNCATE page";
+        jdbcTemplate.update(sql);
+        sql = "TRUNCATE `index`";
+        jdbcTemplate.update(sql);
     }
 
 }

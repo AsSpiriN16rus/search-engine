@@ -56,7 +56,7 @@ public class SiteCrawling  extends RecursiveAction
             if (nestingСounter == 0 ) {
                 nestingСounter = 1;
                 urlOne = url;
-                dropTable();
+//                dropTable();
             }
 
             List<SiteCrawling> tasks =  new ArrayList<>();

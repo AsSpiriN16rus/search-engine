@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd
     http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
-
-    <include file="/db/changelog/changes/create-page-table.xml"/>
-    <include file="/db/changelog/changes/create-field-table.xml"/>
-    <include file="/db/changelog/changes/create-lemma-table.xml"/>
-    <include file="/db/changelog/changes/create-index-table.xml"/>
-    <include file="/db/changelog/changes/create-site-table.xml"/>
+    <changeSet id="2" author="admin">
+        <delete tableName="lemma"/>
+        <delete tableName="index"/>
+        <delete tableName="field"/>
+        <delete tableName="page"/>
+        <delete tableName="site"/>
+    </changeSet>
 </databaseChangeLog>

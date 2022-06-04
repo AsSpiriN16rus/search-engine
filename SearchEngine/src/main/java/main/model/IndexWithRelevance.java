@@ -6,6 +6,7 @@ public class IndexWithRelevance extends Index{
 
     private float relativeRelevance;
     private float absoluteRelevance;
+
 //    private ArrayList<Integer> lemmaIDList;
 //
 //    public ArrayList<Integer> getLemmaList() {
