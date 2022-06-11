@@ -38,16 +38,16 @@ public class InitBean
 //        ForkJoinPool forkJoinPool = new ForkJoinPool();
 //        forkJoinPool.invoke(new SiteCrawling(url, jdbcTemplate));           // ready forkjoin
 //        System.out.println("End forkJoinPool");
-//
+
 //        System.out.println("Start Lemmatizer");
-//        Lemmatizer lemmatizer = new Lemmatizer(jdbcTemplate);
+//        Lemmatizer lemmatizer = new Lemmatizer(1,jdbcTemplate);
 //        lemmatizer.lemText("lemmatizer");                                       // ready lemmatizer
 //        System.out.println("End Lemmatizer");
-//
+////
 //        System.out.println("Start Lemmatizer Rank ");
 //        lemmatizer.lemText("rank");                                      // ready lemmatizer rank
 //        System.out.println("End Lemmatizer Rank ");
-
+//
 //        System.out.println("Start Search Rank ");
 //        String searchText = "телефон хонор старый дешево";
 //        SearchEngine searchEngine = new SearchEngine(jdbcTemplate,searchText);

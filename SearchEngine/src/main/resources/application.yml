@@ -23,15 +23,18 @@ spring:
   thymeleaf:
     prefix: classpath:/search_engine_frontend/
 
-
-#sites:
-#  - url: https://www.lenta.ru
-#      name: Лента.ру
-#      - url: http://www.playback.ru
-#        name: playback
-
+url:
+  sites:
+    - url: http://www.playback.ru
+      name: playback
+    - url: https://dombulgakova.ru
+      name: hh
 user-Agent: Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6
 web-interface: /admin
 server:
-  port: 8082
+  port: 8083
+#url:
+#  sites:
+#    - https://www.lenta.ru
+#    - http://www.playback.ru
 

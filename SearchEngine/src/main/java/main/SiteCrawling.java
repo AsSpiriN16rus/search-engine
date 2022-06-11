@@ -20,7 +20,9 @@ public class SiteCrawling  extends RecursiveAction
 {
     private String url;
     private static String urlOne;
+    private Integer siteId;
     private static int nestingСounter = 0;
+
     private static Set<String> siteUrlListAfter = new HashSet<>();
 
 
@@ -28,7 +30,9 @@ public class SiteCrawling  extends RecursiveAction
     private JdbcTemplate jdbcTemplate;
 
     public SiteCrawling(){}
-    public SiteCrawling(String url, JdbcTemplate jdbcTemplate) {
+    public SiteCrawling(int nestingСounter, Integer siteId, String url, JdbcTemplate jdbcTemplate) {
+        this.nestingСounter = nestingСounter;
+        this.siteId = siteId;
         this.jdbcTemplate = jdbcTemplate;
         this.url = url;
     }
@@ -54,8 +58,8 @@ public class SiteCrawling  extends RecursiveAction
     protected void compute() {
         try {
             if (nestingСounter == 0 ) {
-                nestingСounter = 1;
                 urlOne = url;
+                siteUrlListAfter.add(url + "/");
 //                dropTable();
             }
 
@@ -67,13 +71,25 @@ public class SiteCrawling  extends RecursiveAction
                     .maxBodySize(0).get();
 
 
-            String href = urlOne.charAt(urlOne.length() - 1) == '/'  ?
-                    url.replaceAll(urlOne, "/") : url.replaceAll(urlOne, "");
+            String href = null;
+            if(nestingСounter == 0){
+                href = url.replaceAll(urlOne, "/");
+            }else if (nestingСounter == 1){
+                href = url.replaceAll(urlOne, "");
+            }
+//            String href = url.charAt(url.length() - 1) != '/'  ?
+//                    url.replaceAll(urlOne, "") : url.replaceAll(urlOne, "/");
 
+//            String href = url.replaceAll(urlOne, "/");
             org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
+            if (url.charAt(url.length() - 1)  != '#' ){
+                siteUrlListAfter.add(url);
+                addField(siteId, href,statusCode.statusCode(),document.toString());
+            }
+//            document.toString()
 //            Page link = new Page(rs.getInt("id"), href,statusCode.statusCode(),document.toString()) ;
-            siteUrlListAfter.add(url);
-            addField(href,statusCode.statusCode(),document.toString());
+//            siteUrlListAfter.add(url);
+
 
 
             Elements element = document.select("a");
@@ -81,7 +97,7 @@ public class SiteCrawling  extends RecursiveAction
                 String absHref = em.attr("abs:href");
                 int indexJava = absHref.indexOf(url);
                 if (indexJava != -1 && !siteUrlListAfter.contains(absHref)){
-                    SiteCrawling task = new SiteCrawling(absHref, jdbcTemplate);
+                    SiteCrawling task = new SiteCrawling(1,siteId, absHref, jdbcTemplate);
                     task.fork();
                     tasks.add(task);
                     siteUrlListAfter.add(absHref);
@@ -106,9 +122,9 @@ public class SiteCrawling  extends RecursiveAction
 
 
 
-    public void addField(String path, int code, String content){
-        jdbcTemplate.update("INSERT IGNORE INTO page(path, code,content) VALUES(?,?,?)",
-                path,code,content);
+    public void addField(Integer siteId, String path, int code, String content){
+        jdbcTemplate.update("INSERT IGNORE INTO page(site_id, path, code,content) VALUES(?,?,?,?)",
+                siteId,path,code,content);
     }
 
     public void dropTable(){

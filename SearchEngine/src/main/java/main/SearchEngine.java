@@ -21,7 +21,7 @@ public class SearchEngine
     }
 
     public ArrayList<PageSearchRelevance> search(){
-        Lemmatizer lemmatizer = new Lemmatizer(jdbcTemplate);
+        Lemmatizer lemmatizer = new Lemmatizer(0,jdbcTemplate);
         HashMap searchLem = lemmatizer.lemmatizerText(searchText,false);
 
         List<Lemma> lemmaSearh = new ArrayList<>();

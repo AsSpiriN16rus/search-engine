@@ -15,6 +15,12 @@ public class Page implements Serializable
     public Page() {
     }
 
+    public Page(int id, String path, int code, String content) {
+        this.path = path;
+        this.code = code;
+        this.content = content;
+    }
+
     public Page(int id,int site_id, String path, int code, String content) {
         this.site_id = site_id;
         this.path = path;

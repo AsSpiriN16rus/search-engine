@@ -24,7 +24,10 @@ public class Lemmatizer
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    public Lemmatizer(JdbcTemplate jdbcTemplate) {
+    private Integer siteId;
+
+    public Lemmatizer(int siteId, JdbcTemplate jdbcTemplate) {
+        this.siteId = siteId;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -33,33 +36,35 @@ public class Lemmatizer
         List<Page> pages = findAllPage();
 
         for (Page page : pages){
-            HashMap <String,Double> documentWeight = new HashMap<>();
-            StringBuilder stringBuilder = new StringBuilder();
-            for (Field field : findAllField()){
-                Document doc = Jsoup.parse(page.getContent());
-                String tagText = doc.select(field.getSelector()).text();
-                documentWeight.put(tagText, field.getWeight());
-                stringBuilder.append(tagText + " ");
-            }
+            if (page.getSite_id() == siteId) {
+                HashMap<String, Double> documentWeight = new HashMap<>();
+                StringBuilder stringBuilder = new StringBuilder();
+                for (Field field : findAllField()) {
+                    Document doc = Jsoup.parse(page.getContent());
+                    String tagText = doc.select(field.getSelector()).text();
+                    documentWeight.put(tagText, field.getWeight());
+                    stringBuilder.append(tagText + " ");
+                }
 
-            switch (rank){
-                case "lemmatizer":
-                    lemmatizerText(stringBuilder.toString(), true);
-                    break;
+                switch (rank) {
+                    case "lemmatizer":
+                        lemmatizerText(stringBuilder.toString(), true);
+                        break;
 
-                case "rank":
-                    ExecutorService executorService = Executors.newSingleThreadExecutor();
-                    executorService.execute(new Runnable(){
-                        public void run(){
-
-                            lemRank(documentWeight, page.getPath());
-                        }
-                    });
-                    executorService.shutdown();
-                    break;
-
-                default:
-                    break;
+                    case "rank":
+//                        ExecutorService executorService = Executors.newSingleThreadExecutor();
+//                        executorService.execute(new Runnable() {
+//                            public void run() {
+//
+//                                lemRank(documentWeight, page.getPath());
+//                            }
+//                        });
+//                        executorService.shutdown();
+//                        break;
+                        lemRank(documentWeight, page.getPath());
+                    default:
+                        break;
+                }
             }
         }
 
@@ -89,7 +94,16 @@ public class Lemmatizer
             Index index = new Index();
             index.setLemmaId(getLemmaId(name.toString()));
             index.setRank(weight);
-            index.setPageId(getPageId(url));
+
+
+//            for (Page page : getPageId(url)){
+//                if (page.getSite_id() == siteId){
+//
+//                    index.setPageId(page.getSite_id());
+//                }
+//            }
+            int aa = getPageId(url, siteId);
+            index.setPageId(aa);
             addIndex(index);
         }
 
@@ -131,7 +145,7 @@ public class Lemmatizer
                 }
             }
             if (fullText == true) {
-                outputMap(luceneMap);
+                outputMap(siteId, luceneMap);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -170,14 +184,22 @@ public class Lemmatizer
         return fields;
     }
 
-    public void outputMap(HashMap luceneMap){
+    public Integer getPageId(String page, Integer siteId){
+        String sql = "SELECT ID FROM search_engine.page WHERE path = ? AND site_id = ?";
+
+
+        return jdbcTemplate.queryForObject(
+                sql, new Object[] { page,siteId }, Integer.class);
+    }
+
+    public void outputMap(int siteId, HashMap luceneMap){
         StringBuilder insertQuery = new StringBuilder();
         for (Object name: luceneMap.keySet()){
             String key = name.toString();
 //            jdbcTemplate.update("INSERT INTO lemma(lemma, frequency) VALUES('" + key +"', 1) ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
-            insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1, 1)");
+            insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1, '" + siteId + "')");
         }
-        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency,site_id) VALUES "+ insertQuery.toString() +
+        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency, site_id) VALUES "+ insertQuery.toString() +
                 "ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
     }
 
@@ -191,12 +213,7 @@ public class Lemmatizer
                 sql, new Object[]{lemma}, Integer.class);
     }
 
-    public Integer getPageId(String page){
-        String sql = "SELECT ID FROM search_engine.page WHERE path = ?";
 
-        return jdbcTemplate.queryForObject(
-                sql, new Object[]{page}, Integer.class);
-    }
 
     public void addIndex(Index index){
         jdbcTemplate.update("INSERT IGNORE INTO `index`(page_id, lemma_id,`rank`) VALUES(?,?,?)",
