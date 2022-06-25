@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -25,7 +26,7 @@ public class Lemmatizer
     private JdbcTemplate jdbcTemplate;
 
     private Integer siteId;
-
+    private static Map<Integer, Map<String,Integer>> frequencyLem = new HashMap<>();
     public Lemmatizer(int siteId, JdbcTemplate jdbcTemplate) {
         this.siteId = siteId;
         this.jdbcTemplate = jdbcTemplate;
@@ -92,18 +93,10 @@ public class Lemmatizer
         for (Object name: rankText.keySet()){
             Float weight = Float.valueOf(rankText.get(name).toString());
             Index index = new Index();
-            index.setLemmaId(getLemmaId(name.toString()));
+            index.setLemmaId(getLemmaId(name.toString(), siteId));
             index.setRank(weight);
-
-
-//            for (Page page : getPageId(url)){
-//                if (page.getSite_id() == siteId){
-//
-//                    index.setPageId(page.getSite_id());
-//                }
-//            }
-            int aa = getPageId(url, siteId);
-            index.setPageId(aa);
+            int pageId = getPageId(url, siteId);
+            index.setPageId(pageId);
             addIndex(index);
         }
 
@@ -145,7 +138,8 @@ public class Lemmatizer
                 }
             }
             if (fullText == true) {
-                outputMap(siteId, luceneMap);
+                recordMap(siteId, luceneMap);
+//                outputMap(siteId, luceneMap);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -184,33 +178,50 @@ public class Lemmatizer
         return fields;
     }
 
-    public Integer getPageId(String page, Integer siteId){
-        String sql = "SELECT ID FROM search_engine.page WHERE path = ? AND site_id = ?";
 
-
-        return jdbcTemplate.queryForObject(
-                sql, new Object[] { page,siteId }, Integer.class);
-    }
-
-    public void outputMap(int siteId, HashMap luceneMap){
-        StringBuilder insertQuery = new StringBuilder();
+    public void recordMap(int siteId, HashMap luceneMap){
         for (Object name: luceneMap.keySet()){
-            String key = name.toString();
-//            jdbcTemplate.update("INSERT INTO lemma(lemma, frequency) VALUES('" + key +"', 1) ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
-            insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + key + "', 1, '" + siteId + "')");
+            if (!frequencyLem.containsKey(siteId)){
+                frequencyLem.put(siteId, new HashMap<>());
+            }
+            if (!frequencyLem.get(siteId).containsKey(name.toString())){
+                frequencyLem.get(siteId).put(name.toString(), 1);
+            }else {
+                int frequency = frequencyLem.get(siteId).get(name.toString());
+                frequencyLem.get(siteId).replace(name.toString(), frequency + 1);
+            }
         }
-        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency, site_id) VALUES "+ insertQuery.toString() +
-                "ON DUPLICATE KEY UPDATE frequency = frequency + 1 ");
     }
 
+    public void outputMap(int siteId){
+        StringBuilder insertQuery = new StringBuilder();
 
+        for (Map.Entry<Integer, Map<String, Integer>> entry : frequencyLem.entrySet()) {
+            int key = entry.getKey();
+            if (key == siteId) {
+                Map<String, Integer> childMap = entry.getValue();
+                for (Map.Entry<String, Integer> entry2 : childMap.entrySet()) {
+                    String childKey = entry2.getKey();
+                    Integer childValue = entry2.getValue();
+                    insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + childKey + "', '" + childValue + "', '" + siteId + "')");
+                }
+            }
+        }
+        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency, site_id) VALUES "+ insertQuery.toString());
+    }
 
+    public Integer getPageId(String path, Integer siteId){
 
-    public Integer getLemmaId(String lemma){
-        String sql = "SELECT ID FROM search_engine.lemma WHERE lemma = ?";
+        String sql = "SELECT ID FROM search_engine.page WHERE path = ? AND site_id = ?";
+        return jdbcTemplate.queryForObject(
+                sql, new Object[] { path,siteId }, Integer.class);
+    }
+
+    public Integer getLemmaId(String lemma, Integer siteId){
+        String sql = "SELECT ID FROM search_engine.lemma WHERE lemma = ? AND site_id = ?";
 
         return jdbcTemplate.queryForObject(
-                sql, new Object[]{lemma}, Integer.class);
+                sql, new Object[]{lemma,siteId }, Integer.class);
     }
 
 

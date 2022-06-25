@@ -19,7 +19,7 @@ import java.util.concurrent.RecursiveAction;
 public class SiteCrawling  extends RecursiveAction
 {
     private String url;
-    private static String urlOne;
+    private String urlOne;
     private Integer siteId;
     private static int nestingСounter = 0;
 
@@ -30,35 +30,18 @@ public class SiteCrawling  extends RecursiveAction
     private JdbcTemplate jdbcTemplate;
 
     public SiteCrawling(){}
-    public SiteCrawling(int nestingСounter, Integer siteId, String url, JdbcTemplate jdbcTemplate) {
-        this.nestingСounter = nestingСounter;
+    public SiteCrawling(String urlOne, Integer siteId, String url, JdbcTemplate jdbcTemplate) {
+        this.urlOne = urlOne;
         this.siteId = siteId;
         this.jdbcTemplate = jdbcTemplate;
         this.url = url;
     }
 
-//    public void lemText(Document document, String url){
-//        StringBuilder stringBuilder = new StringBuilder();
-//        HashMap <String,Double> documentWeight = new HashMap<>();
-//        for (Field tag :  findAllField()){
-//
-//            String tagText = document.select(tag.getSelector()).text();
-//            documentWeight.put(tagText, tag.getWeight());
-//            stringBuilder.append(tagText + " ");
-//        }
-//
-//
-////        Lemmatizer.lemmatizerText(stringBuilder.toString(), true);
-////        Lemmatizer.lemRank(documentWeight, url);
-//    }
-    
-
-
     @Override
     protected void compute() {
         try {
-            if (nestingСounter == 0 ) {
-                urlOne = url;
+            if (urlOne == url){
+//                urlOne = url;
                 siteUrlListAfter.add(url + "/");
 //                dropTable();
             }
@@ -72,23 +55,16 @@ public class SiteCrawling  extends RecursiveAction
 
 
             String href = null;
-            if(nestingСounter == 0){
+            if(urlOne == url){
                 href = url.replaceAll(urlOne, "/");
-            }else if (nestingСounter == 1){
+            }else{
                 href = url.replaceAll(urlOne, "");
             }
-//            String href = url.charAt(url.length() - 1) != '/'  ?
-//                    url.replaceAll(urlOne, "") : url.replaceAll(urlOne, "/");
-
-//            String href = url.replaceAll(urlOne, "/");
             org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
             if (url.charAt(url.length() - 1)  != '#' ){
                 siteUrlListAfter.add(url);
                 addField(siteId, href,statusCode.statusCode(),document.toString());
             }
-//            document.toString()
-//            Page link = new Page(rs.getInt("id"), href,statusCode.statusCode(),document.toString()) ;
-//            siteUrlListAfter.add(url);
 
 
 
@@ -97,16 +73,13 @@ public class SiteCrawling  extends RecursiveAction
                 String absHref = em.attr("abs:href");
                 int indexJava = absHref.indexOf(url);
                 if (indexJava != -1 && !siteUrlListAfter.contains(absHref)){
-                    SiteCrawling task = new SiteCrawling(1,siteId, absHref, jdbcTemplate);
+                    SiteCrawling task = new SiteCrawling(urlOne,siteId, absHref, jdbcTemplate);
                     task.fork();
                     tasks.add(task);
                     siteUrlListAfter.add(absHref);
                 }
 
             }
-
-//
-//            Lemmatizer.lemText(document,href, jdbcTemplate);
 
             for (SiteCrawling item : tasks){
                 item.join();

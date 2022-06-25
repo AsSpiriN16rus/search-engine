@@ -14,8 +14,9 @@
                 <constraints nullable="false"/>
             </column>
             <column name="lemma" type="VARCHAR(255)">
-                <constraints nullable="false" unique="true" uniqueConstraintName="lemma_url"/>
+                <constraints nullable="false" />
             </column>
+<!--            unique="true" uniqueConstraintName="lemma_url"-->
             <column name="frequency" type="bigint">
                 <constraints nullable="false"/>
             </column>
