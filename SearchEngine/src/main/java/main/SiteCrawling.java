@@ -29,6 +29,10 @@ public class SiteCrawling  extends RecursiveAction
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    public SiteCrawling(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
     public SiteCrawling(){}
     public SiteCrawling(String urlOne, Integer siteId, String url, JdbcTemplate jdbcTemplate) {
         this.urlOne = urlOne;
@@ -55,15 +59,21 @@ public class SiteCrawling  extends RecursiveAction
 
 
             String href = null;
+            org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
             if(urlOne == url){
                 href = url.replaceAll(urlOne, "/");
+
             }else{
                 href = url.replaceAll(urlOne, "");
             }
-            org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
+
             if (url.charAt(url.length() - 1)  != '#' ){
                 siteUrlListAfter.add(url);
-                addField(siteId, href,statusCode.statusCode(),document.toString());
+                if (!href.equals("/")) {
+                    addField(siteId, href, statusCode.statusCode(), document.toString());
+                }else if (href.equals("/") && urlOne == url){
+                    addField(siteId, href, statusCode.statusCode(), document.toString());
+                }
             }
 
 

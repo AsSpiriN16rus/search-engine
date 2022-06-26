@@ -48,6 +48,7 @@ public class MainController {
         jdbcTemplate.update("TRUNCATE lemma");
         jdbcTemplate.update("TRUNCATE page");
         jdbcTemplate.update("TRUNCATE `index`");
+        jdbcTemplate.update("TRUNCATE site");
     }
 
     private void addSite(int siteId){
@@ -67,8 +68,6 @@ public class MainController {
             return "index";
         } else {
             addSite(siteId);
-
-
 
             System.out.println("Start forkJoinPool");
             ForkJoinPool forkJoinPool = new ForkJoinPool();
@@ -107,12 +106,8 @@ public class MainController {
     @GetMapping("/api/startIndexing")
     public String startIndexing()
     {
-//        dropTable();
-
-
-//        System.out.println(applicationProps.getSites().get(0).getUrl());
-//        System.out.println(applicationProps.getSites().get(1).getUrl());
-
+        dropTable();
+        JSONObject jsonObject = new JSONObject();
         if (!indexingStarted) {
             indexingStarted = true;
             for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
@@ -123,71 +118,76 @@ public class MainController {
                 thread.start();
                 isIndexing = true;
             }
+            jsonObject.put("result", true);
         } else {
+            jsonObject.put("result", false);
+            jsonObject.put("error", "Индексация уже идет");
             System.out.println("Индексация уже идет");
         }
-        return "index";
+
+        try {
+            Files.write(Paths.get("src/main/resources/search_engine_frontend/startIndexing.json"), jsonObject.toJSONString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "statistics.json";
     }
 
     @GetMapping("/api/stopIndexing")
     public String stopIndexing(){
+        JSONObject jsonObject = new JSONObject();
+
         if (!indexingStarted){
+            jsonObject.put("result", false);
+            jsonObject.put("error", "Индексация не запущена");
             System.out.println("Индексация не запущена");
         }else {
-            System.out.println("Остановка индексации");
             isInterruptRequired = true;
+            jsonObject.put("result", true);
+            System.out.println("Остановка индексации");
+
         }
-        return "index";
+        try {
+            Files.write(Paths.get("src/main/resources/search_engine_frontend/stopIndexing.json"), jsonObject.toJSONString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return "stopIndexing.json";
     }
 
     @PostMapping("/api/indexPage")
-    public String indexPage(@RequestParam(value = "url") String url){
+    public String indexPage(@RequestParam(value = "url") String url) throws IOException {
         System.out.println("Начало");
-//        if (!indexingStarted){
-//            indexingStarted = true;
-//            System.out.println("Запуск индексации");
-//
-//
-//            if (isInterruptRequired){
-//                System.out.println("Индексация остановленна");
-//                return "index";
-//            }else {
-//                System.out.println("Start forkJoinPool");
-//                ForkJoinPool forkJoinPool = new ForkJoinPool();
-////                forkJoinPool.invoke(new SiteCrawling(url, jdbcTemplate));
-//                System.out.println("End forkJoinPool");
-//            }
-//
-//            Lemmatizer lemmatizer = new Lemmatizer(jdbcTemplate);
-//
-//            if (isInterruptRequired){
-//                System.out.println("Индексация остановленна");
-//                return "index";
-//            }else {
-//                System.out.println("Start Lemmatizer");
-//
-//                lemmatizer.lemText("lemmatizer");
-//                System.out.println("End Lemmatizer");
-//            }
-//
-//            if (isInterruptRequired){
-//                System.out.println("Индексация остановленна");
-//                return "index";
-//            }else {
-//                System.out.println("Start Lemmatizer Rank ");
-//                lemmatizer.lemText("rank");
-//                System.out.println("End Lemmatizer Rank ");
-//            }
-//        }else {
-//            System.out.println("Индексация уже идет");
-//        }
-        return "index";
+        JSONObject jsonObject = new JSONObject();
+
+        for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
+            String str = applicationProps.getSites().get(siteId).getUrl();
+            if(url.contains(str) && url.length() > 0){
+                Lemmatizer lemmatizer = new Lemmatizer(siteId + 1,jdbcTemplate);
+                lemmatizer.lemTextOnePage(url,"lemmatizer", str);
+                lemmatizer.lemTextOnePage(url,"rank", str);
+                System.out.println("true");
+                jsonObject.put("result", true);
+                break;
+            }else {
+                jsonObject.put("result", false);
+                jsonObject.put("error", "Данная страница находится за пределами сайтов," +
+                        "указанных в конфигурационном файле");
+            }
+
+        }
+        try {
+            Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "indexPage.json";
     }
 
     @GetMapping("/api/statistics")
-    public Object statistics(){
+    public String statistics(){
 
-//        String filename = "example.json";
         JSONObject sampleObject = new JSONObject();
         sampleObject.put("result", "true");
 
@@ -196,9 +196,10 @@ public class MainController {
         total.put("pages", jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.page", Integer.class));
         total.put("lemmas", jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.lemma", Integer.class));
         total.put("isIndexing", isIndexing);
-
+        
         JSONObject statistics = new JSONObject();
 
+        
         JSONArray detailed = new JSONArray();
 
 
@@ -216,19 +217,19 @@ public class MainController {
 
             detailed.add(detailed1);
         }
-
+        
         statistics.put("total",total);
         statistics.put("detailed", detailed);
-
+        
         sampleObject.put("statistics", statistics);
 
-//        try {
-//            Files.write(Paths.get(filename), sampleObject.toJSONString().getBytes());
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            Files.write(Paths.get("src/main/resources/search_engine_frontend/statistics.json"), sampleObject.toJSONString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        return sampleObject;
+        return "statistics.json";
     }
 
     public List<Site> findAllSite() {
