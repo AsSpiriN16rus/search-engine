@@ -2,7 +2,9 @@ package main.controllers;
 
 import main.ApplicationProps;
 import main.Lemmatizer;
+import main.SearchEngine;
 import main.SiteCrawling;
+import main.model.PageSearchRelevance;
 import main.model.Site;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -160,22 +163,26 @@ public class MainController {
     public String indexPage(@RequestParam(value = "url") String url) throws IOException {
         System.out.println("Начало");
         JSONObject jsonObject = new JSONObject();
+        if (url.length() > 0) {
+            for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
+                String str = applicationProps.getSites().get(siteId).getUrl();
+                if (url.contains(str) && url.length() > 0) {
+                    Lemmatizer lemmatizer = new Lemmatizer(siteId + 1, jdbcTemplate);
+                    lemmatizer.lemTextOnePage(url, "lemmatizer", str);
+                    lemmatizer.lemTextOnePage(url, "rank", str);
+                    System.out.println("true");
+                    jsonObject.put("result", true);
+                    break;
+                } else {
+                    jsonObject.put("result", false);
+                    jsonObject.put("error", "Данная страница находится за пределами сайтов," +
+                            "указанных в конфигурационном файле");
+                }
 
-        for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
-            String str = applicationProps.getSites().get(siteId).getUrl();
-            if(url.contains(str) && url.length() > 0){
-                Lemmatizer lemmatizer = new Lemmatizer(siteId + 1,jdbcTemplate);
-                lemmatizer.lemTextOnePage(url,"lemmatizer", str);
-                lemmatizer.lemTextOnePage(url,"rank", str);
-                System.out.println("true");
-                jsonObject.put("result", true);
-                break;
-            }else {
-                jsonObject.put("result", false);
-                jsonObject.put("error", "Данная страница находится за пределами сайтов," +
-                        "указанных в конфигурационном файле");
             }
-
+        }else {
+            jsonObject.put("result", false);
+            jsonObject.put("error", "Заполните поле");
         }
         try {
             Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
@@ -231,6 +238,49 @@ public class MainController {
 
         return "statistics.json";
     }
+
+    @GetMapping("/api/search")
+    public String search(@RequestParam(name = "query") String query, @RequestParam(name = "site",required = false) String site) throws IOException {
+        JSONObject sampleObject = new JSONObject();
+        if (query.length() > 0 ) {
+            ArrayList<PageSearchRelevance> searchList = null;
+            Site siteObj = null;
+            for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
+                if (applicationProps.getSites().get(siteId).getUrl().equals(site)) {
+                    SearchEngine searchEngine = new SearchEngine(jdbcTemplate, query, (siteId + 1));
+                    searchList = searchEngine.search();
+                    siteObj = new Site(applicationProps.getSites().get(siteId).getUrl(), applicationProps.getSites().get(siteId).getName());
+                    break;
+                }else if (site == null || site.length() == 0){
+                    SearchEngine searchEngine = new SearchEngine(jdbcTemplate, query, (siteId + 1));
+                    searchList = searchEngine.search();
+                    siteObj = new Site(applicationProps.getSites().get(siteId).getUrl(), applicationProps.getSites().get(siteId).getName());
+
+                }
+            }
+            sampleObject.put("result", "true");
+            sampleObject.put("count", searchList.size());
+            JSONArray jsonArray = new JSONArray();
+            for (PageSearchRelevance pageSearchRelevance : searchList) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("site", siteObj.getUrl());
+                jsonObject.put("siteName", siteObj.getName());
+                jsonObject.put("uri", pageSearchRelevance.getUri());
+                jsonObject.put("title", pageSearchRelevance.getTitle());
+                jsonObject.put("snippet", pageSearchRelevance.getSnippet());
+                jsonObject.put("relevance", pageSearchRelevance.getRelevance());
+                jsonArray.add(jsonObject);
+            }
+            sampleObject.put("data", jsonArray);
+        }else {
+            sampleObject.put("result", "false");
+            sampleObject.put("error", "Задан пустой поисковый запрос");
+        }
+        Files.write(Paths.get("src/main/resources/search_engine_frontend/search.json"), sampleObject.toJSONString().getBytes());
+        return "search.json";
+    }
+
+
 
     public List<Site> findAllSite() {
         String sql = "SELECT * FROM search_engine.site";

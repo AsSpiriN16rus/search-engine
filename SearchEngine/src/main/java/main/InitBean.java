@@ -47,10 +47,10 @@ public class InitBean
 //        System.out.println("Start Lemmatizer Rank ");
 //        lemmatizer.lemText("rank");                                      // ready lemmatizer rank
 //        System.out.println("End Lemmatizer Rank ");
-//
+////
 //        System.out.println("Start Search Rank ");
-//        String searchText = "телефон хонор старый дешево";
-//        SearchEngine searchEngine = new SearchEngine(jdbcTemplate,searchText);
+//        String searchText = "купить";
+//        SearchEngine searchEngine = new SearchEngine(jdbcTemplate,searchText,1);
 //        searchEngine.search();
 //        System.out.println("End Search Rank ");
 

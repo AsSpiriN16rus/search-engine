@@ -22,7 +22,12 @@ public class Site
 
     private String name;
 
-    public Site(String status, Date statusTime,String url, String name) {
+    public Site(String url, String name) {
+        this.url = url;
+        this.name = name;
+    }
+
+    public Site(String status, Date statusTime, String url, String name) {
         this.status = status;
         this.statusTime = statusTime;
         this.url = url;

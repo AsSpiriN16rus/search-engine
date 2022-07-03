@@ -7,6 +7,8 @@ public class PageSearchRelevance
     private String snippet;
     private float relevance;
 
+
+
     public String getUri() {
         return uri;
     }
