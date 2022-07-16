@@ -8,6 +8,8 @@ import main.model.PageSearchRelevance;
 import main.model.Site;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Controller;
@@ -163,6 +165,15 @@ public class MainController {
     public String indexPage(@RequestParam(value = "url") String url) throws IOException {
         System.out.println("Начало");
         JSONObject jsonObject = new JSONObject();
+        try {
+            org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
+        }catch (Exception ex){
+            ex.getMessage();
+            jsonObject.put("result", false);
+            jsonObject.put("error", "Страница не найдена");
+            Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
+            return "indexPage.json";
+        }
         if (url.length() > 0) {
             for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
                 String str = applicationProps.getSites().get(siteId).getUrl();
@@ -184,11 +195,7 @@ public class MainController {
             jsonObject.put("result", false);
             jsonObject.put("error", "Заполните поле");
         }
-        try {
-            Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
         return "indexPage.json";
     }
 
