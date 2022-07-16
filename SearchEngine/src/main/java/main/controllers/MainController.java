@@ -240,7 +240,7 @@ public class MainController {
     }
 
     @GetMapping("/api/search")
-    public String search(@RequestParam(name = "query") String query, @RequestParam(name = "site",required = false) String site) throws IOException {
+    public String search(@RequestParam(name = "query") String query, @RequestParam(name = "site",required = false) String site,RedirectAttributes redirectAttributes){
         JSONObject sampleObject = new JSONObject();
         if (query.length() > 0 ) {
             ArrayList<PageSearchRelevance> searchList = null;
@@ -258,25 +258,35 @@ public class MainController {
 
                 }
             }
-            sampleObject.put("result", "true");
-            sampleObject.put("count", searchList.size());
-            JSONArray jsonArray = new JSONArray();
-            for (PageSearchRelevance pageSearchRelevance : searchList) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("site", siteObj.getUrl());
-                jsonObject.put("siteName", siteObj.getName());
-                jsonObject.put("uri", pageSearchRelevance.getUri());
-                jsonObject.put("title", pageSearchRelevance.getTitle());
-                jsonObject.put("snippet", pageSearchRelevance.getSnippet());
-                jsonObject.put("relevance", pageSearchRelevance.getRelevance());
-                jsonArray.add(jsonObject);
+            if (searchList == null){
+                sampleObject.put("result", "false");
+                sampleObject.put("error", "Не найдено результатов");
+            }else {
+                sampleObject.put("result", "true");
+                sampleObject.put("count", searchList.size());
+                JSONArray jsonArray = new JSONArray();
+                for (PageSearchRelevance pageSearchRelevance : searchList) {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("site", siteObj.getUrl());
+                    jsonObject.put("siteName", siteObj.getName());
+                    jsonObject.put("uri", pageSearchRelevance.getUri());
+                    jsonObject.put("title", pageSearchRelevance.getTitle());
+                    jsonObject.put("snippet", pageSearchRelevance.getSnippet());
+                    jsonObject.put("relevance", pageSearchRelevance.getRelevance());
+                    jsonArray.add(jsonObject);
+                }
+                sampleObject.put("data", jsonArray);
             }
-            sampleObject.put("data", jsonArray);
         }else {
             sampleObject.put("result", "false");
             sampleObject.put("error", "Задан пустой поисковый запрос");
         }
-        Files.write(Paths.get("src/main/resources/search_engine_frontend/search.json"), sampleObject.toJSONString().getBytes());
+
+        try {
+            Files.write(Paths.get("src/main/resources/search_engine_frontend/search.json"), sampleObject.toJSONString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return "search.json";
     }
 
