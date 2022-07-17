@@ -64,7 +64,7 @@ public class SearchEngine
                 Document doc = Jsoup.parse(pageList.get(0).getContent());
                 String tagText = doc.select("title").text();
                 pageSearchRelevance.setTitle(tagText);
-                String tagTextBody = doc.select("body").text();
+                String tagTextBody = doc.text();
                 String[] textSplit = tagTextBody.split("[\\.\\!\\?]");
 
                 StringBuilder sb = new StringBuilder();
@@ -94,14 +94,10 @@ public class SearchEngine
                     if (snippet){
                         pageSearchRelevance.setSnippet(tagText);
                     }
-                    System.out.println(stringBuilder1);
                 }
-//                System.out.println(sb.toString());
 
 
                 pageSearchRelevancesList.add(pageSearchRelevance);
-//                System.out.println(sb);
-//                System.out.println();
             }
         }
         return pageSearchRelevancesList;
@@ -111,29 +107,19 @@ public class SearchEngine
         ArrayList<IndexWithRelevance> searchRelevance = new ArrayList<>();
 
         float rank = 0.0F;
-//        ArrayList<Integer> lemmaId = new ArrayList<>();
 
         for (int i = 0; i < searchFiltering.size(); i++){
-//            System.out.println(searchFiltering.get(i).getLemmaId() + " idLEmma");
-//            System.out.println(searchFiltering.get(i).getPageId());
 
             if (i + 1 < searchFiltering.size()) {
                 if (searchFiltering.get(i).getPageId() == searchFiltering.get(i + 1).getPageId()) {
                     rank +=searchFiltering.get(i).getRank();
-//                    lemmaId.add(searchFiltering.get(i).getLemmaId());
                 } else if (searchFiltering.get(i).getPageId() != searchFiltering.get(i + 1).getPageId()) {
                     rank +=searchFiltering.get(i).getRank();
                     IndexWithRelevance index = new IndexWithRelevance();
-
-//                    lemmaId.add(searchFiltering.get(i).getLemmaId());
-//                    index.setLemma(lemmaId);
-
                     index.setAbsoluteRelevance(rank);
                     index.setPageId(searchFiltering.get(i).getPageId());
 
                     searchRelevance.add(index);
-
-//                    lemmaId.clear();
                     rank = 0;
                 }
             }else {
@@ -142,10 +128,6 @@ public class SearchEngine
                 index.setAbsoluteRelevance(rank);
                 index.setLemmaId(searchFiltering.get(i).getLemmaId());
                 index.setPageId(searchFiltering.get(i).getPageId());
-
-//                lemmaId.add(searchFiltering.get(i).getLemmaId());
-//                index.setLemma(lemmaId);
-
                 searchRelevance.add(index);
             }
         }
@@ -166,23 +148,14 @@ public class SearchEngine
                 a++;
             }
         }
-//        System.out.println(searchRelevance.size() + " size");
         return searchRelevance;
     }
 
     private ArrayList<Index> lemmaFilter(List<Lemma> lemmaSearh){
         ArrayList<Index> searchFiltering = new ArrayList<>();
-//        System.out.println(lemmaSearh.get(0).getLemma());
-//        System.out.println(lemmaSearh.get(0).getSite_id() + " id");
         for(int i = 0 ; i < lemmaSearh.toArray().length; i++)
         {
             List<Index> indexList = getIndexSearch(lemmaSearh.get(i).getId());
-//            System.out.println(indexList.size() + " size");
-
-
-
-
-
             ArrayList<Index> searchFiltering3 = new ArrayList<>();
             for (Index index : indexList){
                 if (i == 0) {

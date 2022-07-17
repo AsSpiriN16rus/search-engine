@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -91,7 +92,7 @@ public class MainController {
             System.out.println("Start Lemmatizer");
 
             lemmatizer.lemText("lemmatizer");
-            lemmatizer.outputMap(siteId + 1);
+//            lemmatizer.outputMap(siteId + 1);
             System.out.println("End Lemmatizer");
         }
 //
@@ -165,19 +166,30 @@ public class MainController {
     public String indexPage(@RequestParam(value = "url") String url) throws IOException {
         System.out.println("Начало");
         JSONObject jsonObject = new JSONObject();
+        FileWriter fileWriter = new FileWriter("src/main/resources/search_engine_frontend/indexPage.json");
+
         try {
             org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
         }catch (Exception ex){
             ex.getMessage();
             jsonObject.put("result", false);
             jsonObject.put("error", "Страница не найдена");
-            Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
+            System.out.println("Страница не найдена");
+            fileWriter.write(jsonObject.toJSONString());
+            fileWriter.flush();
+            fileWriter.close();
+//            Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
             return "indexPage.json";
+        }
+        if (url.length() == 0){
+            jsonObject.put("result", false);
+            jsonObject.put("error", "Заполните поле");
+            System.out.println("Заполните поле");
         }
         if (url.length() > 0) {
             for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
                 String str = applicationProps.getSites().get(siteId).getUrl();
-                if (url.contains(str) && url.length() > 0) {
+                if (url.contains(str)) {
                     Lemmatizer lemmatizer = new Lemmatizer(siteId + 1, jdbcTemplate);
                     lemmatizer.lemTextOnePage(url, "lemmatizer", str);
                     lemmatizer.lemTextOnePage(url, "rank", str);
@@ -188,14 +200,16 @@ public class MainController {
                     jsonObject.put("result", false);
                     jsonObject.put("error", "Данная страница находится за пределами сайтов," +
                             "указанных в конфигурационном файле");
+                    System.out.println("Данная страница находится за пределами сайтов," +
+                            "указанных в конфигурационном файле");
                 }
 
             }
-        }else {
-            jsonObject.put("result", false);
-            jsonObject.put("error", "Заполните поле");
         }
-        Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
+        fileWriter.write(jsonObject.toJSONString());
+        fileWriter.flush();
+        fileWriter.close();
+//        Files.write(Paths.get("src/main/resources/search_engine_frontend/indexPage.json"), jsonObject.toJSONString().getBytes());
         return "indexPage.json";
     }
 

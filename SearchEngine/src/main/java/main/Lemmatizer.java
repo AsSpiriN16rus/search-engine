@@ -47,11 +47,12 @@ public class Lemmatizer
         StringBuilder stringBuilder1 = new StringBuilder();
         String href = url.replaceAll(str, "");
         for (Field field : findAllField()) {
-            Document doc1 = Jsoup.parse(findPage(href).get(0).getContent());
-            String tagText1 = doc1.select(field.getSelector()).text();
-            documentWeight.put(tagText1, field.getWeight());
-            stringBuilder1.append(tagText1 + " ");
-
+            if (findPage(href).size() != 0) {
+                Document doc1 = Jsoup.parse(findPage(href).get(0).getContent());
+                String tagText1 = doc1.select(field.getSelector()).text();
+                documentWeight.put(tagText1, field.getWeight());
+                stringBuilder1.append(tagText1 + " ");
+            }
             Document doc = Jsoup.parse(document.toString());
             String tagText = doc.select(field.getSelector()).text();
             documentWeight.put(tagText, field.getWeight());
@@ -64,8 +65,10 @@ public class Lemmatizer
                 org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
                 siteCrawling.addField(siteId,href,statusCode.statusCode(),document.toString());
 
-                lemmatizerText(stringBuilder.toString(), "onePageDelete");
                 lemmatizerText(stringBuilder.toString(), "onePage");
+                if (stringBuilder1.length() != 0) {
+                    lemmatizerText(stringBuilder1.toString(), "onePageDelete");
+                }
                 break;
 
             case "rank":
@@ -127,6 +130,7 @@ public class Lemmatizer
         for (Object name: rankText.keySet()){
             Float weight = Float.valueOf(rankText.get(name).toString());
             Index index = new Index();
+//            System.out.println(name.toString());
             index.setLemmaId(getLemmaId(name.toString(), siteId));
             index.setRank(weight);
             int pageId = getPageId(url, siteId);
@@ -183,7 +187,13 @@ public class Lemmatizer
                     break;
                 case "onePage":
                     for (Map.Entry<String, Integer> entry : luceneMap.entrySet()){
-                        jdbcTemplate.update("UPDATE search_engine.lemma SET frequency = frequency + 1 where lemma = '" + entry.getKey() + "'");
+
+                        if (getLemmaId(entry.getKey(),siteId) == null){
+                            jdbcTemplate.update("INSERT INTO `lemma`(lemma, frequency,site_id) VALUES(?,?,?)",
+                                    entry.getKey(),1, siteId);;
+                        }else {
+                            jdbcTemplate.update("UPDATE search_engine.lemma SET frequency = frequency + 1 where lemma = '" + entry.getKey() + "'");
+                        }
                     }
                     break;
                 default:
@@ -262,6 +272,7 @@ public class Lemmatizer
                 }
 
         }
+        outputMap(siteId);
     }
 
     public void outputMap(int siteId){
@@ -290,8 +301,20 @@ public class Lemmatizer
 
     public Integer getLemmaId(String lemma, Integer siteId){
         String sql = "SELECT ID FROM search_engine.lemma WHERE lemma = ? AND site_id = ?";
-        return jdbcTemplate.queryForObject(
-                sql, new Object[]{lemma,siteId }, Integer.class);
+        try {
+            return jdbcTemplate.queryForObject(
+                    sql, new Object[]{lemma,siteId }, Integer.class);
+        }catch (Exception ex){
+            return null;
+        }
+//         int aa = jdbcTemplate.queryForObject(
+//                sql, new Object[]{lemma,siteId }, Integer.class);
+//        System.out.println(aa);
+//         if (aa == 0){
+//             return null;
+//         }else {
+//             return aa;
+//         }
     }
 
 
