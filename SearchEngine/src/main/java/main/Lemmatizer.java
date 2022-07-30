@@ -7,8 +7,6 @@ import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -16,8 +14,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 public class Lemmatizer
@@ -130,8 +126,8 @@ public class Lemmatizer
         for (Object name: rankText.keySet()){
             Float weight = Float.valueOf(rankText.get(name).toString());
             Index index = new Index();
-//            System.out.println(name.toString());
-            index.setLemmaId(getLemmaId(name.toString(), siteId));
+            int lemmaId = getLemmaId(name.toString(), siteId);
+            index.setLemmaId(lemmaId);
             index.setRank(weight);
             int pageId = getPageId(url, siteId);
             index.setPageId(pageId);
@@ -251,14 +247,6 @@ public class Lemmatizer
         return fields;
     }
 
-
-    public void recordOnePage(int siteId, HashMap luceneMap){
-        HashMap<String,Integer> onePageMap = new HashMap<>();
-        for (Object name: luceneMap.keySet()){
-            onePageMap.put(name.toString(),siteId);
-        }
-
-    }
     public void recordMap(int siteId, HashMap luceneMap){
         for (Object name: luceneMap.keySet()){
             if (!frequencyLem.containsKey(siteId)){
@@ -272,12 +260,11 @@ public class Lemmatizer
                 }
 
         }
-        outputMap(siteId);
+
     }
 
     public void outputMap(int siteId){
         StringBuilder insertQuery = new StringBuilder();
-
         for (Map.Entry<Integer, Map<String, Integer>> entry : frequencyLem.entrySet()) {
             int key = entry.getKey();
             if (key == siteId) {
@@ -285,11 +272,15 @@ public class Lemmatizer
                 for (Map.Entry<String, Integer> entry2 : childMap.entrySet()) {
                     String childKey = entry2.getKey();
                     Integer childValue = entry2.getValue();
-                    insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + childKey + "', '" + childValue + "', '" + siteId + "')");
+                    insertQuery.append((insertQuery.length() == 0 ? "" : ",") + "('" + childKey + "','" + childValue + "', '" + siteId + "')");
                 }
             }
         }
-        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency, site_id) VALUES "+ insertQuery.toString());
+        try {
+        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency,site_id) VALUES "+ insertQuery.toString());
+        }catch (Exception ex){
+
+        }
     }
 
     public Integer getPageId(String path, Integer siteId){
@@ -301,20 +292,9 @@ public class Lemmatizer
 
     public Integer getLemmaId(String lemma, Integer siteId){
         String sql = "SELECT ID FROM search_engine.lemma WHERE lemma = ? AND site_id = ?";
-        try {
             return jdbcTemplate.queryForObject(
-                    sql, new Object[]{lemma,siteId }, Integer.class);
-        }catch (Exception ex){
-            return null;
-        }
-//         int aa = jdbcTemplate.queryForObject(
-//                sql, new Object[]{lemma,siteId }, Integer.class);
-//        System.out.println(aa);
-//         if (aa == 0){
-//             return null;
-//         }else {
-//             return aa;
-//         }
+                    sql, new Object[]{lemma,siteId}, Integer.class);
+
     }
 
 

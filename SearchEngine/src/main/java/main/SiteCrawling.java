@@ -45,9 +45,7 @@ public class SiteCrawling  extends RecursiveAction
     protected void compute() {
         try {
             if (urlOne == url){
-//                urlOne = url;
                 siteUrlListAfter.add(url + "/");
-//                dropTable();
             }
 
             List<SiteCrawling> tasks =  new ArrayList<>();
@@ -110,12 +108,4 @@ public class SiteCrawling  extends RecursiveAction
                 siteId,path,code,content);
     }
 
-    public void dropTable(){
-        String sql = "TRUNCATE lemma";
-        jdbcTemplate.update(sql);
-        sql = "TRUNCATE page";
-        jdbcTemplate.update(sql);
-        sql = "TRUNCATE `index`";
-        jdbcTemplate.update(sql);
-    }
 }

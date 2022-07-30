@@ -1,6 +1,6 @@
 package main.model;
 
-public class SearchPAge
+public class SearchPage
 {
     private String uri;
     private String title;

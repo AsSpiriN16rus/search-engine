@@ -45,8 +45,6 @@ public class SearchEngine
             ArrayList<PageSearchRelevance> pageSearchRelevancesList = pageRelevancesList(searchRelevance, lemmaSearh); // Final Search list!!
 
             return pageSearchRelevancesList;
-        }else {
-            System.out.println("Не найдено результатов(");
         }
         return null;
     }
@@ -69,11 +67,7 @@ public class SearchEngine
 
                 StringBuilder sb = new StringBuilder();
                 for (String string : textSplit) {
-//                    if (string.length() == 0) {
-//                        continue;
-//                    }
                     StringBuilder stringBuilder1 = new StringBuilder();
-                    boolean snippet = true;
                     for (Lemma lemma : lemmaSearh) {
 
                         stringBuilder1.append(lemma.getLemma() + " ");
@@ -88,11 +82,7 @@ public class SearchEngine
                             stringBuilder.insert(indexJava, "<b>");
                             sb.append(stringBuilder + ".");
                             pageSearchRelevance.setSnippet(sb.toString());
-                            snippet = false;
                         }
-                    }
-                    if (snippet){
-                        pageSearchRelevance.setSnippet(tagText);
                     }
                 }
 
@@ -172,6 +162,7 @@ public class SearchEngine
                         }
                     }
                 }
+
 
             }
             if (i != 0) {
