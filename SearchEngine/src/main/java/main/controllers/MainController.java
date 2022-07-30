@@ -8,6 +8,9 @@ import main.SiteCrawling;
 import main.model.PageSearchRelevance;
 import main.model.Site;
 import main.model.StartIndexingDto;
+import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.hibernate.type.LocalDateTimeType;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
@@ -26,11 +29,13 @@ import java.util.concurrent.ForkJoinPool;
 @RestController
 public class MainController {
 
+    private Logger logger = Logger.getLogger(MainController.class);
     private JdbcTemplate jdbcTemplate;
 
     private boolean indexingStarted = false;
     private boolean isInterruptRequired = false;
     private boolean isIndexing = false;
+
 
 
     @Autowired
@@ -48,32 +53,42 @@ public class MainController {
     }
 
     public String startIndexingMoreThreads(int siteId){
+        logger.info("Запуск индексации");
         SiteView siteView = new SiteView(jdbcTemplate);
         if (isInterruptRequired) {
+            logger.info("Индексация остановленна");
             return "index";
         } else {
             siteView.dropTable();
             siteView.addSite(applicationProps.getSites().get(siteId).getUrl(),applicationProps.getSites().get(siteId).getName());
+
+            logger.info("Start forkJoinPool");
             ForkJoinPool forkJoinPool = new ForkJoinPool();
             String url = applicationProps.getSites().get(siteId).getUrl();
             forkJoinPool.invoke(new SiteCrawling(url,siteId + 1, url, jdbcTemplate));
-
+            logger.info("End forkJoinPool");
 
         }
 
         Lemmatizer lemmatizer = new Lemmatizer(siteId + 1, jdbcTemplate);
 
         if (isInterruptRequired) {
+            logger.info("Индексация остановленна");
             return "index";
         } else {
+            logger.info("Start Lemmatizer");
             lemmatizer.lemText("lemmatizer");
             lemmatizer.outputMap(siteId + 1);
+            logger.info("End Lemmatizer");
         }
 
         if (isInterruptRequired) {
+            logger.info("Индексация остановленна");
             return "index";
         } else {
+            logger.info("Start Lemmatizer Rank");
             lemmatizer.lemText("rank");
+            logger.info("End Lemmatizer Rank");
         }
         siteView.updateSite(siteId);
         indexingStarted = false;
@@ -84,6 +99,8 @@ public class MainController {
     public StartIndexingDto startIndexing()
     {
         StartIndexingDto startIndexingDto = new StartIndexingDto();
+
+        JSONObject jsonObject = new JSONObject();
         if (!indexingStarted) {
             indexingStarted = true;
             for (int siteId = 0; siteId < applicationProps.getSites().size(); siteId++) {
@@ -95,9 +112,11 @@ public class MainController {
                 isIndexing = true;
             }
             startIndexingDto.setResult(true);
+            jsonObject.put("result", true);
         } else {
             startIndexingDto.setResult(false);
             startIndexingDto.setError("Индексация уже идет");
+            logger.info("Индексация уже идет");
         }
 
         return startIndexingDto;
@@ -110,19 +129,24 @@ public class MainController {
         if (!indexingStarted){
             jsonObject.put("result", false);
             jsonObject.put("error", "Индексация не запущена");
+            logger.info("Индексация не запущена");
         }else {
             isInterruptRequired = true;
             jsonObject.put("result", true);
+            logger.info("Остановка индексации");
         }
+
         return jsonObject;
     }
 
     @PostMapping("/api/indexPage")
     public JSONObject indexPage(@RequestParam(value = "url") String url) throws IOException {
+        logger.info("Начало индексации одной страницы");
         JSONObject jsonObject = new JSONObject();
         try {
             org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
         }catch (Exception ex){
+            ex.getMessage();
             jsonObject.put("result", false);
             jsonObject.put("error", "Страница не найдена");
             return jsonObject;
@@ -155,6 +179,7 @@ public class MainController {
     public JSONObject statistics(){
         JSONObject sampleObject = new JSONObject();
         sampleObject.put("result", "true");
+
         JSONObject total = new JSONObject();
         total.put("sites", jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.site", Integer.class));
         total.put("pages", jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.page", Integer.class));
