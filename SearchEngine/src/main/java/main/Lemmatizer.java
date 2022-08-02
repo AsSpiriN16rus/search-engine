@@ -23,6 +23,16 @@ public class Lemmatizer
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private static final String ID = "id";
+    private static final String SITE_ID = "site_id";
+    private static final String PATH = "path";
+    private static final String CODE = "code";
+    private static final String CONTENT = "content";
+    private static final String NAME = "name";
+    private static final String SELECTOR = "selector";
+    private static final String WEIGHT = "weight";
+
+
     private Integer siteId;
     private static Map<Integer, Map<String,Integer>> frequencyLem = new HashMap<>();
     public Lemmatizer(int siteId, JdbcTemplate jdbcTemplate) {
@@ -206,11 +216,11 @@ public class Lemmatizer
                 sql,
                 (rs, rowNum) ->
                         new Page(
-                                rs.getInt("id"),
-                                rs.getInt("site_id"),
-                                rs.getString("path"),
-                                rs.getInt("code"),
-                                rs.getString("content")
+                                rs.getInt(ID),
+                                rs.getInt(SITE_ID),
+                                rs.getString(PATH),
+                                rs.getInt(CODE),
+                                rs.getString(CONTENT)
                         )
         );
         return pages;
@@ -222,11 +232,11 @@ public class Lemmatizer
                 sql,
                 (rs, rowNum) ->
                         new Page(
-                                rs.getInt("id"),
-                                rs.getInt("site_id"),
-                                rs.getString("path"),
-                                rs.getInt("code"),
-                                rs.getString("content")
+                                rs.getInt(ID),
+                                rs.getInt(SITE_ID),
+                                rs.getString(PATH),
+                                rs.getInt(CODE),
+                                rs.getString(CONTENT)
                         )
         );
         return pages;
@@ -238,10 +248,10 @@ public class Lemmatizer
                 sql,
                 (rs, rowNum) ->
                         new Field(
-                                rs.getInt("id"),
-                                rs.getString("name"),
-                                rs.getString("selector"),
-                                rs.getDouble("weight")
+                                rs.getInt(ID),
+                                rs.getString(NAME),
+                                rs.getString(SELECTOR),
+                                rs.getDouble(WEIGHT)
                         )
         );
         return fields;

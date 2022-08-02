@@ -13,6 +13,17 @@ public class SearchEngine
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private static final String ID = "id";
+    private static final String SITE_ID = "site_id";
+    private static final String PATH = "path";
+    private static final String CODE = "code";
+    private static final String CONTENT = "content";
+    private static final String LEMMA = "lemma";
+    private static final String FREQUENCY = "frequency";
+    private static final String PAGE_ID = "page_id";
+    private static final String LEMMA_ID = "lemma_id";
+    private static final String RANK = "rank";
+
     private String searchText;
     private int siteId;
 
@@ -190,10 +201,10 @@ public class SearchEngine
         List<Lemma> lemmaList = jdbcTemplate.query("SELECT * FROM search_engine.lemma where lemma = ? and site_id = ?",
                 new Object[]{lemmaSearch,siteId}, (ResultSet rs, int rowNum) ->{
             Lemma lemma = new Lemma();
-            lemma.setId(rs.getInt("id"));
-            lemma.setSite_id(rs.getInt("site_id"));
-            lemma.setLemma(rs.getString("lemma"));
-            lemma.setFrequency(rs.getInt("frequency"));
+            lemma.setId(rs.getInt(ID));
+            lemma.setSite_id(rs.getInt(SITE_ID));
+            lemma.setLemma(rs.getString(LEMMA));
+            lemma.setFrequency(rs.getInt(FREQUENCY));
             return lemma;
         });
         return new ArrayList<>(lemmaList);
@@ -202,10 +213,10 @@ public class SearchEngine
     public List<Index> getIndexSearch(int id) {
         List<Index> indexList = jdbcTemplate.query("SELECT * FROM search_engine.index where lemma_id = ?", new Object[]{id}, (ResultSet rs, int rowNum) ->{
             Index index = new Index();
-            index.setId(rs.getInt("id"));
-            index.setPageId(rs.getInt("page_id"));
-            index.setLemmaId(rs.getInt("lemma_id"));
-            index.setRank(rs.getFloat("rank"));
+            index.setId(rs.getInt(ID));
+            index.setPageId(rs.getInt(PAGE_ID));
+            index.setLemmaId(rs.getInt(LEMMA_ID));
+            index.setRank(rs.getFloat(RANK));
             return index;
         });
         return new ArrayList<>(indexList);
@@ -214,11 +225,11 @@ public class SearchEngine
     public List<Page> getPageSearch(int id) {
         List<Page> indexList = jdbcTemplate.query("SELECT * FROM search_engine.page where id = ?", new Object[]{id}, (ResultSet rs, int rowNum) ->{
             Page page = new Page();
-            page.setId(rs.getInt("id"));
-            page.setId(rs.getInt("site_id"));
-            page.setPath(rs.getString("path"));
-            page.setCode(rs.getInt("code"));
-            page.setContent(rs.getString("content"));
+            page.setId(rs.getInt(ID));
+            page.setId(rs.getInt(SITE_ID));
+            page.setPath(rs.getString(PATH));
+            page.setCode(rs.getInt(CODE));
+            page.setContent(rs.getString(CONTENT));
             return page;
         });
         return new ArrayList<>(indexList);

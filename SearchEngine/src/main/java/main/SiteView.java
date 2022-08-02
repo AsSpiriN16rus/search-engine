@@ -9,6 +9,13 @@ import java.util.List;
 
 public class SiteView {
 
+    private static final String ID = "id";
+    private static final String STATUS = "status";
+    private static final String STATUS_TIME = "status_time";
+    private static final String LAST_ERROR = "last_error";
+    private static final String URL = "url";
+    private static final String NAME = "name";
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -33,12 +40,12 @@ public class SiteView {
                 sql,
                 (rs, rowNum) ->
                         new main.model.Site(
-                                rs.getInt("id"),
-                                rs.getString("status"),
-                                rs.getDate("status_time"),
-                                rs.getString("last_error"),
-                                rs.getString("url"),
-                                rs.getString("name")
+                                rs.getInt(ID),
+                                rs.getString(STATUS),
+                                rs.getDate(STATUS_TIME),
+                                rs.getString(LAST_ERROR),
+                                rs.getString(URL),
+                                rs.getString(NAME)
                         )
         );
         return sites;
