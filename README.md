@@ -10,3 +10,7 @@
 + liquibase
 + thymeleaf
 + mysql
+
+## Запуск через командую строку
++ зайти в директорию проекта
++ ввести команду java -jar SearchEngine-1.0-SNAPSHOT.jar
