@@ -1,8 +1,12 @@
-package main;
+package main.service;
 
 import main.model.Field;
 import main.model.Index;
 import main.model.Page;
+import main.repository.FieldRepository;
+import main.repository.IndexRepository;
+import main.repository.LemmaRepository;
+import main.repository.PageRepository;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
@@ -23,16 +27,6 @@ public class Lemmatizer
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private static final String ID = "id";
-    private static final String SITE_ID = "site_id";
-    private static final String PATH = "path";
-    private static final String CODE = "code";
-    private static final String CONTENT = "content";
-    private static final String NAME = "name";
-    private static final String SELECTOR = "selector";
-    private static final String WEIGHT = "weight";
-
-
     private Integer siteId;
     private static Map<Integer, Map<String,Integer>> frequencyLem = new HashMap<>();
     public Lemmatizer(int siteId, JdbcTemplate jdbcTemplate) {
@@ -49,36 +43,41 @@ public class Lemmatizer
         SiteCrawling siteCrawling = new SiteCrawling(jdbcTemplate);
 
         HashMap<String, Double> documentWeight = new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
-        StringBuilder stringBuilder1 = new StringBuilder();
+        StringBuilder strOnePageAdd = new StringBuilder();
+        StringBuilder strOnePageDelete = new StringBuilder();
         String href = url.replaceAll(str, "");
-        for (Field field : findAllField()) {
-            if (findPage(href).size() != 0) {
-                Document doc1 = Jsoup.parse(findPage(href).get(0).getContent());
-                String tagText1 = doc1.select(field.getSelector()).text();
-                documentWeight.put(tagText1, field.getWeight());
-                stringBuilder1.append(tagText1 + " ");
+        FieldRepository fieldRepository = new FieldRepository(jdbcTemplate);
+        for (Field field : fieldRepository.findAllField()) {
+            PageRepository pageRepository = new PageRepository(jdbcTemplate);
+            if (pageRepository.findPage(href).size() != 0) {
+                Document contentDocument = Jsoup.parse(pageRepository.findPage(href).get(0).getContent());
+                String tagText = contentDocument.select(field.getSelector()).text();
+                documentWeight.put(tagText, field.getWeight());
+                strOnePageDelete.append(tagText + " ");
             }
             Document doc = Jsoup.parse(document.toString());
             String tagText = doc.select(field.getSelector()).text();
             documentWeight.put(tagText, field.getWeight());
-            stringBuilder.append(tagText + " ");
+            strOnePageAdd.append(tagText + " ");
         }
 
         switch (rank) {
             case "lemmatizer":
-                jdbcTemplate.update("delete from search_engine.page where path = '" + href + "'");
+                PageRepository pageRepository = new PageRepository(jdbcTemplate);
+                try {
+                    pageRepository.deletePage(href);
+                }catch (Exception ex){}
                 org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
-                siteCrawling.addField(siteId,href,statusCode.statusCode(),document.toString());
+                fieldRepository.addField(siteId,href,statusCode.statusCode(),document.toString());
 
-                lemmatizerText(stringBuilder.toString(), "onePage");
-                if (stringBuilder1.length() != 0) {
-                    lemmatizerText(stringBuilder1.toString(), "onePageDelete");
+                lemmatizerText(strOnePageAdd.toString(), "onePage");
+                if (strOnePageDelete.length() != 0) {
+                    lemmatizerText(strOnePageDelete.toString(), "onePageDelete");
                 }
                 break;
-
             case "rank":
                 lemRank(documentWeight, href);
+                break;
             default:
                 break;
         }
@@ -86,13 +85,15 @@ public class Lemmatizer
     }
 
     public void lemText(String rank){
-        List<Page> pages = findAllPage();
+        PageRepository pageRepository = new PageRepository(jdbcTemplate);
+        List<Page> pages = pageRepository.findAllPage();
 
         for (Page page : pages){
             if (page.getSite_id() == siteId) {
                 HashMap<String, Double> documentWeight = new HashMap<>();
                 StringBuilder stringBuilder = new StringBuilder();
-                for (Field field : findAllField()) {
+                FieldRepository fieldRepository = new FieldRepository(jdbcTemplate);
+                for (Field field : fieldRepository.findAllField()) {
                     Document doc = Jsoup.parse(page.getContent());
                     String tagText = doc.select(field.getSelector()).text();
                     documentWeight.put(tagText, field.getWeight());
@@ -103,15 +104,14 @@ public class Lemmatizer
                     case "lemmatizer":
                         lemmatizerText(stringBuilder.toString(), "morePage");
                         break;
-
                     case "rank":
                         lemRank(documentWeight, page.getPath());
+                        break;
                     default:
                         break;
                 }
             }
         }
-
     }
 
     public void lemRank(HashMap documentWeight, String url){
@@ -132,21 +132,20 @@ public class Lemmatizer
                 }
             }
         }
-
         for (Object name: rankText.keySet()){
             Float weight = Float.valueOf(rankText.get(name).toString());
             Index index = new Index();
-            int lemmaId = getLemmaId(name.toString(), siteId);
+            LemmaRepository lemmaRepository = new LemmaRepository(jdbcTemplate);
+            int lemmaId = lemmaRepository.getLemmaId(name.toString(), siteId);
             index.setLemmaId(lemmaId);
             index.setRank(weight);
-            int pageId = getPageId(url, siteId);
+            PageRepository pageRepository = new PageRepository(jdbcTemplate);
+            int pageId = pageRepository.getPageId(url, siteId);
             index.setPageId(pageId);
-            addIndex(index);
+            IndexRepository indexRepository = new IndexRepository(jdbcTemplate);
+            indexRepository.addIndex(index);
         }
-
-
     }
-
 
     public HashMap<String, Integer> lemmatizerText(String textLem , String fullText){
 
@@ -181,24 +180,22 @@ public class Lemmatizer
                     }
                 }
             }
-
+            LemmaRepository lemmaRepository = new LemmaRepository(jdbcTemplate);
             switch (fullText) {
                 case "morePage":
                     recordMap(siteId, luceneMap);
                     break;
                 case "onePageDelete":
                     for (Map.Entry<String, Integer> entry : luceneMap.entrySet()){
-                        jdbcTemplate.update("UPDATE search_engine.lemma SET frequency = frequency - 1 where lemma = '" + entry.getKey() + "'");
+                        lemmaRepository.minusFrequencyLemma(entry.getKey());
                     }
                     break;
                 case "onePage":
                     for (Map.Entry<String, Integer> entry : luceneMap.entrySet()){
-
-                        if (getLemmaId(entry.getKey(),siteId) == null){
-                            jdbcTemplate.update("INSERT INTO `lemma`(lemma, frequency,site_id) VALUES(?,?,?)",
-                                    entry.getKey(),1, siteId);;
+                        if (lemmaRepository.getLemmaId(entry.getKey(),siteId) == -1){
+                            lemmaRepository.addOneLemma(entry.getKey(),siteId);
                         }else {
-                            jdbcTemplate.update("UPDATE search_engine.lemma SET frequency = frequency + 1 where lemma = '" + entry.getKey() + "'");
+                            lemmaRepository.plusFrequencyLemma(entry.getKey());
                         }
                     }
                     break;
@@ -209,52 +206,6 @@ public class Lemmatizer
             e.printStackTrace();
         }
         return luceneMap;
-    }
-    public List<Page> findPage(String urlPage) {
-        String sql = "SELECT * FROM search_engine.page where path = '" + urlPage + "'";
-        List<Page> pages = jdbcTemplate.query(
-                sql,
-                (rs, rowNum) ->
-                        new Page(
-                                rs.getInt(ID),
-                                rs.getInt(SITE_ID),
-                                rs.getString(PATH),
-                                rs.getInt(CODE),
-                                rs.getString(CONTENT)
-                        )
-        );
-        return pages;
-    }
-
-    public List<Page> findAllPage() {
-        String sql = "SELECT * FROM search_engine.page";
-        List<Page> pages = jdbcTemplate.query(
-                sql,
-                (rs, rowNum) ->
-                        new Page(
-                                rs.getInt(ID),
-                                rs.getInt(SITE_ID),
-                                rs.getString(PATH),
-                                rs.getInt(CODE),
-                                rs.getString(CONTENT)
-                        )
-        );
-        return pages;
-    }
-
-    public List<Field> findAllField() {
-        String sql = "SELECT * FROM search_engine.field";
-        List<Field> fields = jdbcTemplate.query(
-                sql,
-                (rs, rowNum) ->
-                        new Field(
-                                rs.getInt(ID),
-                                rs.getString(NAME),
-                                rs.getString(SELECTOR),
-                                rs.getDouble(WEIGHT)
-                        )
-        );
-        return fields;
     }
 
     public void recordMap(int siteId, HashMap luceneMap){
@@ -268,9 +219,7 @@ public class Lemmatizer
                     int frequency = frequencyLem.get(siteId).get(name.toString());
                     frequencyLem.get(siteId).replace(name.toString(), frequency + 1);
                 }
-
         }
-
     }
 
     public void outputMap(int siteId){
@@ -286,32 +235,7 @@ public class Lemmatizer
                 }
             }
         }
-        try {
-        jdbcTemplate.update("INSERT INTO lemma(lemma,frequency,site_id) VALUES "+ insertQuery.toString());
-        }catch (Exception ex){
-
-        }
+        LemmaRepository lemmaRepository = new LemmaRepository(jdbcTemplate);
+        lemmaRepository.addLemma(insertQuery);
     }
-
-    public Integer getPageId(String path, Integer siteId){
-
-        String sql = "SELECT ID FROM search_engine.page WHERE path = ? AND site_id = ?";
-        return jdbcTemplate.queryForObject(
-                sql, new Object[] { path,siteId }, Integer.class);
-    }
-
-    public Integer getLemmaId(String lemma, Integer siteId){
-        String sql = "SELECT ID FROM search_engine.lemma WHERE lemma = ? AND site_id = ?";
-            return jdbcTemplate.queryForObject(
-                    sql, new Object[]{lemma,siteId}, Integer.class);
-
-    }
-
-
-
-    public void addIndex(Index index){
-        jdbcTemplate.update("INSERT IGNORE INTO `index`(page_id, lemma_id,`rank`) VALUES(?,?,?)",
-                index.getPageId(),index.getLemmaId(), index.getRank());
-    }
-
 }

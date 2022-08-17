@@ -1,5 +1,6 @@
-package main;
+package main.service;
 
+import main.repository.FieldRepository;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -7,11 +8,7 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
 import java.util.*;
 import java.util.concurrent.RecursiveAction;
 
@@ -55,26 +52,23 @@ public class SiteCrawling  extends RecursiveAction
                     .referrer("http://www.google.com")
                     .maxBodySize(0).get();
 
-
             String href = null;
             org.jsoup.Connection.Response statusCode = Jsoup.connect(url).execute();
             if(urlOne == url){
                 href = url.replaceAll(urlOne, "/");
-
             }else{
                 href = url.replaceAll(urlOne, "");
             }
 
             if (url.charAt(url.length() - 1)  != '#' ){
                 siteUrlListAfter.add(url);
+                FieldRepository fieldRepository = new FieldRepository(jdbcTemplate);
                 if (!href.equals("/")) {
-                    addField(siteId, href, statusCode.statusCode(), document.toString());
+                    fieldRepository.addField(siteId, href, statusCode.statusCode(), document.toString());
                 }else if (href.equals("/") && urlOne == url){
-                    addField(siteId, href, statusCode.statusCode(), document.toString());
+                    fieldRepository.addField(siteId, href, statusCode.statusCode(), document.toString());
                 }
             }
-
-
 
             Elements element = document.select("a");
             for (Element em : element){
@@ -86,26 +80,14 @@ public class SiteCrawling  extends RecursiveAction
                     tasks.add(task);
                     siteUrlListAfter.add(absHref);
                 }
-
             }
 
             for (SiteCrawling item : tasks){
                 item.join();
             }
-
-
         }
         catch (Exception ex){
             ex.printStackTrace();
         }
     }
-
-
-
-
-    public void addField(Integer siteId, String path, int code, String content){
-        jdbcTemplate.update("INSERT IGNORE INTO page(site_id, path, code,content) VALUES(?,?,?,?)",
-                siteId,path,code,content);
-    }
-
 }

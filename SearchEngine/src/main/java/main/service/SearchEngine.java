@@ -1,5 +1,9 @@
-package main;
+package main.service;
 import main.model.*;
+import main.repository.IndexRepository;
+import main.repository.LemmaRepository;
+import main.repository.PageRepository;
+import main.service.Lemmatizer;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,17 +16,6 @@ public class SearchEngine
 {
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    private static final String ID = "id";
-    private static final String SITE_ID = "site_id";
-    private static final String PATH = "path";
-    private static final String CODE = "code";
-    private static final String CONTENT = "content";
-    private static final String LEMMA = "lemma";
-    private static final String FREQUENCY = "frequency";
-    private static final String PAGE_ID = "page_id";
-    private static final String LEMMA_ID = "lemma_id";
-    private static final String RANK = "rank";
 
     private String searchText;
     private int siteId;
@@ -39,7 +32,8 @@ public class SearchEngine
         List<Lemma> lemmaSearh = new ArrayList<>();
 
         for (Object key : searchLem.keySet()){
-            List<Lemma> lemmaList = getLemmaSearch(key.toString(),siteId);
+            LemmaRepository lemmaRepository = new LemmaRepository(jdbcTemplate);
+            List<Lemma> lemmaList = lemmaRepository.getLemmaSearch(key.toString(),siteId);
             for (Lemma lemma : lemmaList){
                 lemmaSearh.add(lemma);
             }
@@ -62,8 +56,9 @@ public class SearchEngine
 
     private ArrayList<PageSearchRelevance> pageRelevancesList(ArrayList<IndexWithRelevance> searchRelevance, List<Lemma> lemmaSearh){
         ArrayList<PageSearchRelevance> pageSearchRelevancesList = new ArrayList<>();
+        PageRepository pageRepository = new PageRepository(jdbcTemplate);
         for (IndexWithRelevance index : searchRelevance){
-            List<Page> pageList = getPageSearch(index.getPageId());
+            List<Page> pageList = pageRepository.getPageSearch(index.getPageId());
             if (pageList != null && pageList.size() > 0 ) {
                 PageSearchRelevance pageSearchRelevance = new PageSearchRelevance();
                 pageSearchRelevance.setRelevance(index.getRelativeRelevance());
@@ -154,9 +149,10 @@ public class SearchEngine
 
     private ArrayList<Index> lemmaFilter(List<Lemma> lemmaSearh){
         ArrayList<Index> searchFiltering = new ArrayList<>();
+        IndexRepository indexRepository = new IndexRepository(jdbcTemplate);
         for(int i = 0 ; i < lemmaSearh.toArray().length; i++)
         {
-            List<Index> indexList = getIndexSearch(lemmaSearh.get(i).getId());
+            List<Index> indexList = indexRepository.getIndexSearch(lemmaSearh.get(i).getId());
             ArrayList<Index> searchFiltering3 = new ArrayList<>();
             for (Index index : indexList){
                 if (i == 0) {
@@ -184,7 +180,6 @@ public class SearchEngine
         return searchFiltering;
     }
 
-
     private void lemmaSort(List<Lemma> lemmaSearh){
         lemmaSearh.sort(new Comparator<Lemma>() {
             @Override
@@ -196,45 +191,5 @@ public class SearchEngine
         });
 
     }
-
-    public List<Lemma> getLemmaSearch(String lemmaSearch, int siteId) {
-        List<Lemma> lemmaList = jdbcTemplate.query("SELECT * FROM search_engine.lemma where lemma = ? and site_id = ?",
-                new Object[]{lemmaSearch,siteId}, (ResultSet rs, int rowNum) ->{
-            Lemma lemma = new Lemma();
-            lemma.setId(rs.getInt(ID));
-            lemma.setSite_id(rs.getInt(SITE_ID));
-            lemma.setLemma(rs.getString(LEMMA));
-            lemma.setFrequency(rs.getInt(FREQUENCY));
-            return lemma;
-        });
-        return new ArrayList<>(lemmaList);
-    }
-
-    public List<Index> getIndexSearch(int id) {
-        List<Index> indexList = jdbcTemplate.query("SELECT * FROM search_engine.index where lemma_id = ?", new Object[]{id}, (ResultSet rs, int rowNum) ->{
-            Index index = new Index();
-            index.setId(rs.getInt(ID));
-            index.setPageId(rs.getInt(PAGE_ID));
-            index.setLemmaId(rs.getInt(LEMMA_ID));
-            index.setRank(rs.getFloat(RANK));
-            return index;
-        });
-        return new ArrayList<>(indexList);
-    }
-
-    public List<Page> getPageSearch(int id) {
-        List<Page> indexList = jdbcTemplate.query("SELECT * FROM search_engine.page where id = ?", new Object[]{id}, (ResultSet rs, int rowNum) ->{
-            Page page = new Page();
-            page.setId(rs.getInt(ID));
-            page.setId(rs.getInt(SITE_ID));
-            page.setPath(rs.getString(PATH));
-            page.setCode(rs.getInt(CODE));
-            page.setContent(rs.getString(CONTENT));
-            return page;
-        });
-        return new ArrayList<>(indexList);
-    }
-
-
 
 }

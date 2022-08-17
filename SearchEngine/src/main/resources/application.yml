@@ -27,8 +27,8 @@ url:
   sites:
     - url: http://www.playback.ru
       name: playback
-    - url: https://dombulgakova.ru
-      name: dombulgakova
+    - url: http://www.playback.ru
+      name: playback
       
 user-Agent: Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6
 web-interface: /api/admin

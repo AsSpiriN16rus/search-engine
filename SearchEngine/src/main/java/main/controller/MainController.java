@@ -1,16 +1,17 @@
-package main.controllers;
+package main.controller;
 
-import main.SiteView;
 import main.model.ApplicationProps;
-import main.Lemmatizer;
-import main.SearchEngine;
-import main.SiteCrawling;
+import main.service.Lemmatizer;
+import main.service.SearchEngine;
+import main.service.SiteCrawling;
 import main.model.PageSearchRelevance;
 import main.model.Site;
 import main.model.StartIndexingDto;
+import main.repository.DropTableRepository;
+import main.repository.LemmaRepository;
+import main.repository.PageRepository;
+import main.repository.SiteRepository;
 import org.apache.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.hibernate.type.LocalDateTimeType;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
@@ -76,13 +77,14 @@ public class MainController {
 
     public String startIndexingMoreThreads(int siteId){
         logger.info("Запуск индексации");
-        SiteView siteView = new SiteView(jdbcTemplate);
+        SiteRepository siteRepository = new SiteRepository(jdbcTemplate);
         if (isInterruptRequired) {
             logger.info("Индексация остановленна");
             return "index";
         } else {
-            siteView.dropTable();
-            siteView.addSite(applicationProps.getSites().get(siteId).getUrl(),applicationProps.getSites().get(siteId).getName());
+            DropTableRepository dropTableRepository = new DropTableRepository(jdbcTemplate);
+            dropTableRepository.dropTable();
+            siteRepository.addSite(applicationProps.getSites().get(siteId).getUrl(),applicationProps.getSites().get(siteId).getName());
 
             logger.info("Start forkJoinPool");
             ForkJoinPool forkJoinPool = new ForkJoinPool();
@@ -112,7 +114,7 @@ public class MainController {
             lemmatizer.lemText("rank");
             logger.info("End Lemmatizer Rank");
         }
-        siteView.updateSite(siteId);
+        siteRepository.updateSite(siteId);
         indexingStarted = false;
         return "index";
     }
@@ -201,11 +203,13 @@ public class MainController {
     public JSONObject statistics(){
         JSONObject sampleObject = new JSONObject();
         sampleObject.put(RESULT, "true");
-
+        SiteRepository siteRepository = new SiteRepository(jdbcTemplate);
+        PageRepository pageRepository = new PageRepository(jdbcTemplate);
+        LemmaRepository lemmaRepository = new LemmaRepository(jdbcTemplate);
         JSONObject total = new JSONObject();
-        total.put(SITES_COUNT, jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.site", Integer.class));
-        total.put(PAGES_COUNT, jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.page", Integer.class));
-        total.put(LEMMAS_COUNT, jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.lemma", Integer.class));
+        total.put(SITES_COUNT, siteRepository.countSite());
+        total.put(PAGES_COUNT, pageRepository.countPage());
+        total.put(LEMMAS_COUNT, lemmaRepository.countLemma());
         total.put(IS_INDEXING, isIndexing);
         
         JSONObject statistics = new JSONObject();
@@ -213,8 +217,7 @@ public class MainController {
         
         JSONArray detailed = new JSONArray();
 
-        SiteView siteView = new SiteView(jdbcTemplate);
-        for (Site siteObj : siteView.findAllSite()){
+        for (Site siteObj : siteRepository.findAllSite()){
             JSONObject detailed1 = new JSONObject();
 
             detailed1.put(URL, siteObj.getUrl());
@@ -223,8 +226,8 @@ public class MainController {
             String statusTime = String.valueOf(siteObj.getStatusTime());
             detailed1.put(STATUS_TIME,statusTime);
             detailed1.put(ERROR, siteObj.getLastError());
-            detailed1.put(PAGES_COUNT, jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.page where site_id = '" + (siteObj.getId()) +"'", Integer.class));
-            detailed1.put(LEMMAS_COUNT, jdbcTemplate.queryForObject("SELECT count(*) FROM search_engine.lemma where site_id = '" + (siteObj.getId()) +"'", Integer.class));
+            detailed1.put(PAGES_COUNT, pageRepository.countPageWithId(siteObj.getId()));
+            detailed1.put(LEMMAS_COUNT, lemmaRepository.countLemmaWithId(siteObj.getId()));
 
             detailed.add(detailed1);
         }
